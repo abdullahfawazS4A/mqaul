@@ -18,11 +18,12 @@ import {
   seedProjects,
 } from './mockData.js'
 import { clearState, loadState, saveState } from './storage.js'
+import { todayISO } from '../utils/format.js'
 
 const DataContext = createContext(null)
 
 const uid = (prefix) => `${prefix}_${Math.random().toString(36).slice(2, 9)}`
-const today = () => new Date().toISOString().slice(0, 10)
+const today = todayISO // التوقيت المحلي — لا UTC
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0)
 const byDateDesc = (a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0)
 
