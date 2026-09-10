@@ -16,8 +16,20 @@ export default function ProjectSection({
   amountTone = 'text-slate-800',
   emptyText,
   onAdd,
+  onEdit,
   onDelete,
 }) {
+  const actions = (item) => (
+    <div className="flex justify-end gap-1 print:hidden">
+      <Button variant="ghost" size="sm" onClick={() => onEdit(item)} aria-label="تعديل">
+        <Icon name="edit" className="h-4 w-4" />
+      </Button>
+      <Button variant="ghost" size="sm" onClick={() => onDelete(item)} aria-label="حذف">
+        <Icon name="trash" className="h-4 w-4" />
+      </Button>
+    </div>
+  )
+
   return (
     <Card className="overflow-hidden">
       <CardHeader
@@ -52,14 +64,7 @@ export default function ProjectSection({
                   <span className={`num text-sm font-semibold ${amountTone}`}>
                     {formatMoney(item.amount)}
                   </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onDelete(item.id)}
-                    aria-label="حذف"
-                  >
-                    <Icon name="trash" className="h-4 w-4" />
-                  </Button>
+                  {actions(item)}
                 </div>
               </li>
             ))}
@@ -77,7 +82,7 @@ export default function ProjectSection({
                     </th>
                   ))}
                   <th className="px-4 py-2.5 font-medium">التاريخ</th>
-                  <th className="px-4 py-2.5" />
+                  <th className="px-4 py-2.5 print:hidden" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -92,16 +97,7 @@ export default function ProjectSection({
                       </td>
                     ))}
                     <td className="num px-4 py-2.5 text-slate-500">{formatDate(item.date)}</td>
-                    <td className="px-4 py-2.5 text-left">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onDelete(item.id)}
-                        aria-label="حذف"
-                      >
-                        <Icon name="trash" className="h-4 w-4" />
-                      </Button>
-                    </td>
+                    <td className="px-4 py-2.5 text-left print:hidden">{actions(item)}</td>
                   </tr>
                 ))}
               </tbody>

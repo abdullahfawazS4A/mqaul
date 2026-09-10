@@ -1,16 +1,29 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useProjects } from '../hooks/useProjects.js'
 import PageHeader from '../components/ui/PageHeader.jsx'
+import StatCard from '../components/ui/StatCard.jsx'
 import Button from '../components/ui/Button.jsx'
 import Icon from '../components/ui/Icon.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
+import { Input } from '../components/ui/Field.jsx'
+import { useToast } from '../components/ui/Toast.jsx'
 import ProjectForm from '../components/projects/ProjectForm.jsx'
 import { CURRENCY, formatMoney } from '../utils/format.js'
 
 export default function ProjectsPage() {
-  const { projects, addProject, projectTotals } = useProjects()
+  const { projects, addProject, projectTotals, projectsTotals } = useProjects()
+  const { notify } = useToast()
   const [formOpen, setFormOpen] = useState(false)
+  const [search, setSearch] = useState('')
+
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return projects
+    return projects.filter((p) =>
+      `${p.name} ${p.company} ${p.partners.join(' ')}`.toLowerCase().includes(q),
+    )
+  }, [projects, search])
 
   return (
     <div>
@@ -25,15 +38,39 @@ export default function ProjectsPage() {
         }
       />
 
+      {projects.length > 0 && (
+        <>
+          <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard label="عدد المشاريع" value={projects.length} money={false} />
+            <StatCard label="مجموع قيم المشاريع" value={projectsTotals.value} />
+            <StatCard label="مجموع الإيداعات" value={projectsTotals.deposits} tone="positive" />
+            <StatCard label="مجموع المصاريف" value={projectsTotals.expenses} tone="negative" />
+          </div>
+
+          <div className="mb-4">
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="بحث باسم المشروع أو الشركة أو الشريك…"
+              className="w-full sm:w-80"
+            />
+          </div>
+        </>
+      )}
+
       {projects.length === 0 ? (
         <div className="rounded-xl border border-slate-200 bg-white">
           <EmptyState text="لا توجد مشاريع بعد.">
             <Button onClick={() => setFormOpen(true)}>إضافة مشروع جديد</Button>
           </EmptyState>
         </div>
+      ) : visible.length === 0 ? (
+        <div className="rounded-xl border border-slate-200 bg-white">
+          <EmptyState text="لا يوجد مشروع مطابق للبحث." />
+        </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {projects.map((project) => {
+          {visible.map((project) => {
             const totals = projectTotals(project)
             return (
               <Link
@@ -69,7 +106,7 @@ export default function ProjectsPage() {
                   </div>
                 )}
 
-                <div className="mt-3 grid grid-cols-3 gap-2 border-t border-slate-100 pt-3 text-center text-[11px]">
+                <div className="mt-3 grid grid-cols-4 gap-2 border-t border-slate-100 pt-3 text-center text-[11px]">
                   <div>
                     <p className="text-slate-400">إيداعات</p>
                     <p className="num font-semibold text-emerald-600">
@@ -82,7 +119,19 @@ export default function ProjectsPage() {
                   </div>
                   <div>
                     <p className="text-slate-400">سلف</p>
-                    <p className="num font-semibold text-slate-700">{formatMoney(totals.advances)}</p>
+                    <p className="num font-semibold text-slate-700">
+                      {formatMoney(totals.advances)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400">المتبقي</p>
+                    <p
+                      className={`num font-semibold ${
+                        totals.available < 0 ? 'text-red-600' : 'text-slate-800'
+                      }`}
+                    >
+                      {formatMoney(totals.available)}
+                    </p>
                   </div>
                 </div>
               </Link>
@@ -91,7 +140,14 @@ export default function ProjectsPage() {
         </div>
       )}
 
-      <ProjectForm open={formOpen} onClose={() => setFormOpen(false)} onSubmit={addProject} />
+      <ProjectForm
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        onSubmit={(data) => {
+          addProject(data)
+          notify('تمت إضافة المشروع.')
+        }}
+      />
     </div>
   )
 }

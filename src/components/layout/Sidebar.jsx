@@ -4,7 +4,7 @@ import Icon from '../ui/Icon.jsx'
 
 export default function Sidebar() {
   return (
-    <aside className="hidden w-60 shrink-0 border-l border-slate-200 bg-white lg:flex lg:flex-col">
+    <aside className="hidden w-60 shrink-0 border-l border-slate-200 bg-white print:hidden lg:flex lg:flex-col">
       <div className="border-b border-slate-200 px-5 py-5">
         <h1 className="text-base font-bold text-slate-800">محاسبة المقاولات</h1>
         <p className="mt-0.5 text-xs text-slate-400">إدارة الصيرفة والديون والمشاريع</p>
@@ -21,6 +21,7 @@ export default function Sidebar() {
                 <li key={item.to}>
                   <NavLink
                     to={item.to}
+                    end={item.end}
                     className={({ isActive }) =>
                       `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
                         isActive
@@ -40,7 +41,7 @@ export default function Sidebar() {
       </nav>
 
       <p className="border-t border-slate-200 px-5 py-3 text-[11px] text-slate-400">
-        بيانات تجريبية — بدون حفظ دائم
+        البيانات محفوظة في هذا المتصفح
       </p>
     </aside>
   )

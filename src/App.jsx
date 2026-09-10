@@ -1,22 +1,28 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
 import Layout from './components/layout/Layout.jsx'
+import DashboardPage from './pages/DashboardPage.jsx'
 import TreasuryPage from './pages/TreasuryPage.jsx'
 import DebtsPage from './pages/DebtsPage.jsx'
+import PersonLedgerPage from './pages/PersonLedgerPage.jsx'
 import ListsPage from './pages/ListsPage.jsx'
 import ProjectsPage from './pages/ProjectsPage.jsx'
 import ProjectDetailsPage from './pages/ProjectDetailsPage.jsx'
+import SettingsPage from './pages/SettingsPage.jsx'
+import NotFoundPage from './pages/NotFoundPage.jsx'
 
 export default function App() {
   return (
     <Layout>
       <Routes>
-        <Route path="/" element={<Navigate to="/treasury" replace />} />
+        <Route path="/" element={<DashboardPage />} />
         <Route path="/treasury" element={<TreasuryPage />} />
         <Route path="/debts" element={<DebtsPage />} />
+        <Route path="/debts/:personId" element={<PersonLedgerPage />} />
         <Route path="/lists" element={<ListsPage />} />
         <Route path="/projects" element={<ProjectsPage />} />
         <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
-        <Route path="*" element={<Navigate to="/treasury" replace />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Layout>
   )

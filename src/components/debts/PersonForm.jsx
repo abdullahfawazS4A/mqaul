@@ -1,22 +1,22 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Modal from '../ui/Modal.jsx'
 import Button from '../ui/Button.jsx'
 import Field, { ErrorMessage, Input, Textarea } from '../ui/Field.jsx'
 
-/** إضافة مستخدم (شخص له دين). */
-export default function PersonForm({ open, onClose, onSubmit }) {
+/** إضافة/تعديل مستخدم (شخص). نفس الشخص يُستخدم في الديون وفي القوائم. */
+export default function PersonForm({ open, initial, onClose, onSubmit }) {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [notes, setNotes] = useState('')
   const [error, setError] = useState('')
 
-  const close = () => {
-    setName('')
-    setPhone('')
-    setNotes('')
+  useEffect(() => {
+    if (!open) return
+    setName(initial?.name || '')
+    setPhone(initial?.phone || '')
+    setNotes(initial?.notes || '')
     setError('')
-    onClose()
-  }
+  }, [open, initial])
 
   const submit = (e) => {
     e.preventDefault()
@@ -24,12 +24,12 @@ export default function PersonForm({ open, onClose, onSubmit }) {
       setError('الاسم مطلوب.')
       return
     }
-    onSubmit({ name, phone, notes })
-    close()
+    onSubmit({ name: name.trim(), phone: phone.trim(), notes: notes.trim() })
+    onClose()
   }
 
   return (
-    <Modal open={open} title="إضافة مستخدم" onClose={close}>
+    <Modal open={open} title={initial ? 'تعديل بيانات المستخدم' : 'إضافة مستخدم'} onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
         <ErrorMessage>{error}</ErrorMessage>
 
@@ -51,7 +51,7 @@ export default function PersonForm({ open, onClose, onSubmit }) {
         </Field>
 
         <div className="flex justify-end gap-2 pt-1">
-          <Button variant="secondary" onClick={close}>
+          <Button variant="secondary" onClick={onClose}>
             إلغاء
           </Button>
           <Button type="submit">حفظ</Button>

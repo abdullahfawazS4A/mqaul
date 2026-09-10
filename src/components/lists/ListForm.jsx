@@ -4,7 +4,7 @@ import Button from '../ui/Button.jsx'
 import Field, { ErrorMessage, Input, NumberInput, Select, Textarea } from '../ui/Field.jsx'
 
 const EMPTY = {
-  personName: '',
+  personId: '',
   listNumber: '',
   notes: '',
   value: '',
@@ -12,8 +12,11 @@ const EMPTY = {
   status: 'unpaid',
 }
 
-/** نموذج إضافة/تعديل قائمة — أرقام للعرض فقط، بلا أثر حسابي. */
-export default function ListForm({ open, initial, onClose, onSubmit }) {
+/**
+ * نموذج إضافة/تعديل قائمة.
+ * الشخص يُختار من الأشخاص المسجّلين في الديون فقط — لا كتابة اسم حر.
+ */
+export default function ListForm({ open, initial, people, onClose, onSubmit }) {
   const [form, setForm] = useState(EMPTY)
   const [error, setError] = useState('')
 
@@ -22,7 +25,7 @@ export default function ListForm({ open, initial, onClose, onSubmit }) {
     setForm(
       initial
         ? {
-            personName: initial.personName,
+            personId: initial.personId,
             listNumber: initial.listNumber,
             notes: initial.notes,
             value: String(initial.value),
@@ -38,37 +41,60 @@ export default function ListForm({ open, initial, onClose, onSubmit }) {
 
   const submit = (e) => {
     e.preventDefault()
-    if (!form.personName.trim()) {
-      setError('اسم الشخص مطلوب.')
+    if (!form.personId) {
+      setError('اختر الشخص من قائمة الأشخاص المسجّلين في الديون.')
       return
     }
     if (!form.listNumber.trim()) {
       setError('رقم القائمة مطلوب.')
       return
     }
-    onSubmit({ ...form, value: Number(form.value) || 0, profit: Number(form.profit) || 0 })
+    const res = onSubmit({
+      ...form,
+      value: Number(form.value) || 0,
+      profit: Number(form.profit) || 0,
+    })
+    if (res && res.ok === false) {
+      setError(res.error)
+      return
+    }
     onClose()
   }
+
+  const noPeople = people.length === 0
 
   return (
     <Modal open={open} title={initial ? 'تعديل قائمة' : 'إضافة قائمة'} onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
         <ErrorMessage>{error}</ErrorMessage>
 
+        {noPeople && (
+          <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+            لا يوجد أشخاص مسجّلون — أضف مستخدمًا من صفحة «الديون» أولًا.
+          </p>
+        )}
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="اسم الشخص">
-            <Input value={form.personName} onChange={set('personName')} autoFocus />
+          <Field label="اسم الشخص" hint="من الأشخاص المسجّلين في الديون">
+            <Select value={form.personId} onChange={set('personId')} disabled={noPeople} autoFocus>
+              <option value="">— اختر الشخص —</option>
+              {people.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </Select>
           </Field>
 
           <Field label="رقم القائمة">
             <Input value={form.listNumber} onChange={set('listNumber')} className="num text-right" />
           </Field>
 
-          <Field label="قيمة القائمة" hint="للعرض فقط — بلا أثر على الصيرفة أو الديون">
+          <Field label="قيمة القائمة" hint="للعرض فقط — بلا أثر على الصيرفة أو رأس المال">
             <NumberInput value={form.value} onChange={set('value')} placeholder="0" />
           </Field>
 
-          <Field label="ربح القائمة">
+          <Field label="ربح القائمة" hint="غير المقبوض منه يُحتسب دينًا على الشخص">
             <NumberInput value={form.profit} onChange={set('profit')} placeholder="0" />
           </Field>
         </div>
@@ -88,7 +114,9 @@ export default function ListForm({ open, initial, onClose, onSubmit }) {
           <Button variant="secondary" onClick={onClose}>
             إلغاء
           </Button>
-          <Button type="submit">حفظ</Button>
+          <Button type="submit" disabled={noPeople}>
+            حفظ
+          </Button>
         </div>
       </form>
     </Modal>

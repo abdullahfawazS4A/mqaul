@@ -18,3 +18,31 @@ body {
   unicode-bidi: isolate;
   font-variant-numeric: tabular-nums;
 }
+
+/* الطباعة: ورقة نظيفة بلا تنقّل ولا أزرار */
+@media print {
+  @page {
+    margin: 14mm;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  main {
+    padding: 0 !important;
+  }
+
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* تجنّب قطع البطاقات والجداول بين الصفحات */
+  table, .print-block {
+    break-inside: avoid;
+  }
+
+  a[href]::after {
+    content: "";
+  }
+}

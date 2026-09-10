@@ -9,8 +9,10 @@ export function useProjects() {
     deleteProject,
     getProject,
     addProjectItem,
+    updateProjectItem,
     deleteProjectItem,
     projectTotals,
+    projectsTotals,
   } = useData()
 
   return {
@@ -20,7 +22,9 @@ export function useProjects() {
     deleteProject,
     getProject,
     addProjectItem,
+    updateProjectItem,
     deleteProjectItem,
     projectTotals,
+    projectsTotals,
   }
 }

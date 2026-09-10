@@ -17,8 +17,20 @@ function TypeBadge({ type }) {
   )
 }
 
-export default function TreasuryTable({ entries, onDelete }) {
-  if (entries.length === 0) return <EmptyState text="لا توجد عمليات مسجّلة بعد." />
+export default function TreasuryTable({ entries, onEdit, onDelete, emptyText }) {
+  if (entries.length === 0)
+    return <EmptyState text={emptyText || 'لا توجد عمليات مسجّلة بعد.'} />
+
+  const actions = (e) => (
+    <div className="flex justify-end gap-1 print:hidden">
+      <Button variant="ghost" size="sm" onClick={() => onEdit(e)} aria-label="تعديل">
+        <Icon name="edit" className="h-4 w-4" />
+      </Button>
+      <Button variant="ghost" size="sm" onClick={() => onDelete(e)} aria-label="حذف">
+        <Icon name="trash" className="h-4 w-4" />
+      </Button>
+    </div>
+  )
 
   return (
     <>
@@ -40,9 +52,7 @@ export default function TreasuryTable({ entries, onDelete }) {
                 {e.type === 'in' ? '+' : '−'}
                 {formatMoney(e.amount)}
               </span>
-              <Button variant="ghost" size="sm" onClick={() => onDelete(e.id)} aria-label="حذف">
-                <Icon name="trash" className="h-4 w-4" />
-              </Button>
+              {actions(e)}
             </div>
           </li>
         ))}
@@ -57,7 +67,7 @@ export default function TreasuryTable({ entries, onDelete }) {
               <th className="px-4 py-2.5 font-medium">المبلغ</th>
               <th className="px-4 py-2.5 font-medium">التاريخ</th>
               <th className="px-4 py-2.5 font-medium">الملاحظة</th>
-              <th className="px-4 py-2.5" />
+              <th className="px-4 py-2.5 print:hidden" />
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -76,11 +86,7 @@ export default function TreasuryTable({ entries, onDelete }) {
                 </td>
                 <td className="num px-4 py-2.5 text-slate-500">{formatDate(e.date)}</td>
                 <td className="max-w-xs truncate px-4 py-2.5 text-slate-600">{e.note || '—'}</td>
-                <td className="px-4 py-2.5 text-left">
-                  <Button variant="ghost" size="sm" onClick={() => onDelete(e.id)} aria-label="حذف">
-                    <Icon name="trash" className="h-4 w-4" />
-                  </Button>
-                </td>
+                <td className="px-4 py-2.5 text-left print:hidden">{actions(e)}</td>
               </tr>
             ))}
           </tbody>

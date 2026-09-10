@@ -5,13 +5,23 @@ import Field, { ErrorMessage, Input, NumberInput, Select } from '../ui/Field.jsx
 import { todayISO } from '../../utils/format.js'
 
 const CONFIG = {
-  deposits: { title: 'إضافة إيداع شريك' },
-  expenses: { title: 'إضافة مصروف' },
-  advances: { title: 'إضافة سلفة مستلمة' },
+  deposits: { add: 'إضافة إيداع شريك', edit: 'تعديل إيداع شريك' },
+  expenses: { add: 'إضافة مصروف', edit: 'تعديل مصروف' },
+  advances: { add: 'إضافة سلفة مستلمة', edit: 'تعديل سلفة مستلمة' },
 }
 
-/** نموذج موحّد لإضافة إيداع شريك / مصروف / سلفة داخل مشروع. */
-export default function ProjectEntryForm({ open, kind, partners = [], onClose, onSubmit }) {
+/**
+ * نموذج موحّد لإضافة/تعديل إيداع شريك أو مصروف أو سلفة داخل مشروع.
+ * onSubmit تُعيد { ok, error } — يُعرض الخطأ داخل النموذج دون إغلاقه.
+ */
+export default function ProjectEntryForm({
+  open,
+  kind,
+  initial,
+  partners = [],
+  onClose,
+  onSubmit,
+}) {
   const [amount, setAmount] = useState('')
   const [date, setDate] = useState(todayISO())
   const [partner, setPartner] = useState('')
@@ -22,14 +32,14 @@ export default function ProjectEntryForm({ open, kind, partners = [], onClose, o
 
   useEffect(() => {
     if (!open) return
-    setAmount('')
-    setDate(todayISO())
-    setPartner(partners[0] || '')
-    setDescription('')
-    setSpender('')
-    setSource('')
+    setAmount(initial ? String(initial.amount) : '')
+    setDate(initial?.date || todayISO())
+    setPartner(initial?.partner ?? partners[0] ?? '')
+    setDescription(initial?.description || '')
+    setSpender(initial?.spender || '')
+    setSource(initial?.source || '')
     setError('')
-  }, [open, kind])
+  }, [open, kind, initial])
 
   if (!kind) return null
 
@@ -65,12 +75,16 @@ export default function ProjectEntryForm({ open, kind, partners = [], onClose, o
     }
     if (kind === 'advances') payload.source = source.trim()
 
-    onSubmit(kind, payload)
+    const res = onSubmit(kind, payload)
+    if (res && res.ok === false) {
+      setError(res.error)
+      return
+    }
     onClose()
   }
 
   return (
-    <Modal open={open} title={CONFIG[kind].title} onClose={onClose}>
+    <Modal open={open} title={CONFIG[kind][initial ? 'edit' : 'add']} onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
         <ErrorMessage>{error}</ErrorMessage>
 
@@ -92,6 +106,7 @@ export default function ProjectEntryForm({ open, kind, partners = [], onClose, o
                     {p}
                   </option>
                 ))}
+                {partner && !partners.includes(partner) && <option value={partner}>{partner}</option>}
               </Select>
             </Field>
           ) : (

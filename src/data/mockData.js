@@ -25,10 +25,12 @@ export const seedDebtEntries = [
   { id: 'd3', personId: 'p2', type: 'debt', amount: 50000000, date: '2026-08-10', note: 'دفعة حديد تسليح' },
 ]
 
+// كل قائمة مرتبطة بشخص موجود في seedPeople عبر personId — لا أسماء حرة.
 export const seedLists = [
-  { id: 'l1', personName: 'أحمد المصري', listNumber: '1024', notes: 'قائمة أعمال البلاط', value: 42000000, profit: 5500000, status: 'paid' },
-  { id: 'l2', personName: 'سالم الحديدي', listNumber: '1025', notes: 'حديد تسليح 12 مم', value: 78000000, profit: 9250000, status: 'unpaid' },
-  { id: 'l3', personName: 'خالد النجار', listNumber: '1026', notes: '', value: 16500000, profit: 2100000, status: 'unpaid' },
+  { id: 'l1', personId: 'p1', listNumber: '1024', notes: 'قائمة أعمال البلاط', value: 42000000, profit: 5500000, status: 'paid' },
+  { id: 'l2', personId: 'p2', listNumber: '1025', notes: 'حديد تسليح 12 مم', value: 78000000, profit: 9250000, status: 'unpaid' },
+  { id: 'l3', personId: 'p3', listNumber: '1026', notes: '', value: 16500000, profit: 2100000, status: 'unpaid' },
+  { id: 'l4', personId: 'p1', listNumber: '1027', notes: 'قائمة سيراميك', value: 23000000, profit: 3100000, status: 'unpaid' },
 ]
 
 export const seedProjects = [

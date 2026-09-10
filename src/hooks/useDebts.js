@@ -1,6 +1,6 @@
 import { useData } from '../data/DataContext.jsx'
 
-/** واجهة الديون. */
+/** واجهة الديون النقدية (رأس المال) — معزولة تمامًا عن ديون القوائم. */
 export function useDebts() {
   const {
     capital,
@@ -8,11 +8,13 @@ export function useDebts() {
     availableCapital,
     totalOutstandingDebt,
     people,
+    getPerson,
     addPerson,
     updatePerson,
     deletePerson,
     addDebt,
     addReceipt,
+    updateDebtEntry,
     deleteDebtEntry,
     entriesOfPerson,
   } = useData()
@@ -23,11 +25,13 @@ export function useDebts() {
     availableCapital,
     totalOutstandingDebt,
     people,
+    getPerson,
     addPerson,
     updatePerson,
     deletePerson,
     addDebt,
     addReceipt,
+    updateDebtEntry,
     deleteDebtEntry,
     entriesOfPerson,
   }
