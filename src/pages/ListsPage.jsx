@@ -53,7 +53,7 @@ export default function ListsPage() {
     return lists
       .filter((l) => (filter === 'all' ? true : l.status === filter))
       .filter((l) =>
-        q ? `${l.personName} ${l.listNumber} ${l.notes}`.toLowerCase().includes(q) : true,
+        q ? `${l.personName} ${l.listNumber} ${l.date} ${l.notes}`.toLowerCase().includes(q) : true,
       )
   }, [lists, filter, search])
 
@@ -95,6 +95,7 @@ export default function ListsPage() {
       [
         { key: 'personName', label: 'اسم الشخص' },
         { key: 'listNumber', label: 'رقم القائمة' },
+        { key: 'date', label: 'التاريخ' },
         { key: 'value', label: 'القيمة' },
         { key: 'profit', label: 'الربح' },
         { key: (l) => (l.status === 'paid' ? 'واصل' : 'دين'), label: 'الحالة' },

@@ -1,3 +1,6 @@
+import { useLayoutEffect, useRef } from 'react'
+import { groupAmount, sanitizeAmount } from '../../utils/format.js'
+
 const base =
   'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200'
 
@@ -15,13 +18,53 @@ export function Input({ className = '', ...props }) {
   return <input className={`${base} ${className}`} {...props} />
 }
 
-export function NumberInput({ className = '', ...props }) {
+/**
+ * حقل المبالغ: يعرض فارزة كل ٣ أرقام أثناء الكتابة ويُعيد القيمة نظيفة (أرقام فقط).
+ * onChange تستلم النص الخام مباشرةً — لا e.target.value.
+ * لوحة المفاتيح الرقمية تظهر على الموبايل عبر inputMode، مع إبقاء النوع نصًّا
+ * لأن type="number" لا يقبل الفوارز.
+ */
+export function MoneyInput({ value, onChange, className = '', ...props }) {
+  const ref = useRef(null)
+  const caret = useRef(null)
+
+  // بعد إعادة الرسم: أعِد المؤشر إلى موضعه المنطقي بدل قفزه إلى النهاية
+  useLayoutEffect(() => {
+    if (caret.current == null || !ref.current) return
+    const pos = caret.current
+    caret.current = null
+    ref.current.setSelectionRange(pos, pos)
+  })
+
+  const handleChange = (e) => {
+    const el = e.target
+    const typed = el.value
+    const selection = el.selectionStart ?? typed.length
+    // عدد المحارف ذات المعنى قبل المؤشر — الفوارز لا تُحسب
+    const meaningful = typed.slice(0, selection).replace(/[^\d.]/g, '').length
+
+    const clean = sanitizeAmount(typed)
+    const shown = groupAmount(clean)
+
+    let pos = 0
+    let seen = 0
+    while (pos < shown.length && seen < meaningful) {
+      if (shown[pos] !== ',') seen++
+      pos++
+    }
+    caret.current = pos
+
+    onChange(clean)
+  }
+
   return (
     <input
-      type="number"
-      min="0"
-      step="any"
+      ref={ref}
+      type="text"
       inputMode="decimal"
+      autoComplete="off"
+      value={groupAmount(value)}
+      onChange={handleChange}
       className={`num text-right ${base} ${className}`}
       {...props}
     />

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import Modal from '../ui/Modal.jsx'
 import Button from '../ui/Button.jsx'
+import FormActions from '../ui/FormActions.jsx'
 import Icon from '../ui/Icon.jsx'
-import Field, { ErrorMessage, Input, NumberInput } from '../ui/Field.jsx'
+import Field, { ErrorMessage, Input, MoneyInput } from '../ui/Field.jsx'
 
 /** نموذج إضافة/تعديل مشروع، مع قائمة شركاء ديناميكية. */
 export default function ProjectForm({ open, initial, onClose, onSubmit }) {
@@ -53,7 +54,7 @@ export default function ProjectForm({ open, initial, onClose, onSubmit }) {
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="القيمة المالية">
-            <NumberInput value={value} onChange={(e) => setValue(e.target.value)} placeholder="0" />
+            <MoneyInput value={value} onChange={setValue} placeholder="0" />
           </Field>
 
           <Field label="الشركة المنفذة">
@@ -88,12 +89,12 @@ export default function ProjectForm({ open, initial, onClose, onSubmit }) {
           </Button>
         </div>
 
-        <div className="flex justify-end gap-2 pt-1">
+        <FormActions>
           <Button variant="secondary" onClick={onClose}>
             إلغاء
           </Button>
           <Button type="submit">حفظ</Button>
-        </div>
+        </FormActions>
       </form>
     </Modal>
   )

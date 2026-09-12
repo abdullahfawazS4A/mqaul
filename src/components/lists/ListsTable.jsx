@@ -1,7 +1,7 @@
 import Button from '../ui/Button.jsx'
 import Icon from '../ui/Icon.jsx'
 import EmptyState from '../ui/EmptyState.jsx'
-import { formatMoney } from '../../utils/format.js'
+import { formatDate, formatMoney } from '../../utils/format.js'
 
 function StatusBadge({ status, onClick }) {
   const paid = status === 'paid'
@@ -33,7 +33,9 @@ export default function ListsTable({ lists, onEdit, onDelete, onToggleStatus }) 
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-slate-800">{l.personName}</p>
-                <p className="num text-xs text-slate-400">قائمة رقم {l.listNumber}</p>
+                <p className="num text-xs text-slate-400">
+                  قائمة رقم {l.listNumber} · {formatDate(l.date)}
+                </p>
                 {l.notes && <p className="mt-0.5 truncate text-xs text-slate-500">{l.notes}</p>}
               </div>
               <StatusBadge status={l.status} onClick={() => onToggleStatus(l.id)} />
@@ -67,6 +69,7 @@ export default function ListsTable({ lists, onEdit, onDelete, onToggleStatus }) 
             <tr>
               <th className="px-4 py-2.5 font-medium">اسم الشخص</th>
               <th className="px-4 py-2.5 font-medium">رقم القائمة</th>
+              <th className="px-4 py-2.5 font-medium">التاريخ</th>
               <th className="px-4 py-2.5 font-medium">القيمة</th>
               <th className="px-4 py-2.5 font-medium">الربح</th>
               <th className="px-4 py-2.5 font-medium">الحالة</th>
@@ -79,6 +82,7 @@ export default function ListsTable({ lists, onEdit, onDelete, onToggleStatus }) 
               <tr key={l.id} className="hover:bg-slate-50/70">
                 <td className="px-4 py-2.5 font-medium text-slate-800">{l.personName}</td>
                 <td className="num px-4 py-2.5 text-slate-500">{l.listNumber}</td>
+                <td className="num px-4 py-2.5 text-slate-500">{formatDate(l.date)}</td>
                 <td className="num px-4 py-2.5 text-slate-700">{formatMoney(l.value)}</td>
                 <td className="num px-4 py-2.5 text-slate-700">{formatMoney(l.profit)}</td>
                 <td className="px-4 py-2.5">

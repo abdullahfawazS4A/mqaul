@@ -8,6 +8,7 @@ import Icon from '../components/ui/Icon.jsx'
 import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
 import { useToast } from '../components/ui/Toast.jsx'
 import { Input } from '../components/ui/Field.jsx'
+import DateRangePicker from '../components/ui/DateRangePicker.jsx'
 import TreasuryForm from '../components/treasury/TreasuryForm.jsx'
 import TreasuryTable from '../components/treasury/TreasuryTable.jsx'
 import { CURRENCY, formatDate, formatMoney } from '../utils/format.js'
@@ -116,15 +117,17 @@ export default function TreasuryPage() {
             />
           </label>
 
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium text-slate-600">من تاريخ</span>
-            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-          </label>
-
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium text-slate-600">إلى تاريخ</span>
-            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-          </label>
+          <div className="block">
+            <DateRangePicker
+              label="المدة"
+              from={from}
+              to={to}
+              onChange={({ from: f, to: t }) => {
+                setFrom(f)
+                setTo(t)
+              }}
+            />
+          </div>
 
           <div className="flex gap-1.5">
             {FILTERS.map((f) => (

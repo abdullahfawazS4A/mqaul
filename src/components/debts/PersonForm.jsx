@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import Modal from '../ui/Modal.jsx'
 import Button from '../ui/Button.jsx'
+import FormActions from '../ui/FormActions.jsx'
 import Field, { ErrorMessage, Input, Textarea } from '../ui/Field.jsx'
 
 /** إضافة/تعديل مستخدم (شخص). نفس الشخص يُستخدم في الديون وفي القوائم. */
@@ -50,12 +51,12 @@ export default function PersonForm({ open, initial, onClose, onSubmit }) {
           <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
         </Field>
 
-        <div className="flex justify-end gap-2 pt-1">
+        <FormActions>
           <Button variant="secondary" onClick={onClose}>
             إلغاء
           </Button>
           <Button type="submit">حفظ</Button>
-        </div>
+        </FormActions>
       </form>
     </Modal>
   )

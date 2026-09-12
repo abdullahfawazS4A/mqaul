@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import Modal from '../ui/Modal.jsx'
 import Button from '../ui/Button.jsx'
-import Field, { ErrorMessage, Input, NumberInput, Textarea } from '../ui/Field.jsx'
+import FormActions from '../ui/FormActions.jsx'
+import Field, { ErrorMessage, Input, MoneyInput, Textarea } from '../ui/Field.jsx'
 import { CURRENCY, formatMoney, todayISO } from '../../utils/format.js'
 
 /**
@@ -62,9 +63,9 @@ export default function DebtEntryForm({ open, kind, person, limit, initial, onCl
         <ErrorMessage>{error}</ErrorMessage>
 
         <Field label="المبلغ">
-          <NumberInput
+          <MoneyInput
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onChange={setAmount}
             placeholder="0"
             autoFocus
           />
@@ -78,14 +79,14 @@ export default function DebtEntryForm({ open, kind, person, limit, initial, onCl
           <Textarea value={note} onChange={(e) => setNote(e.target.value)} />
         </Field>
 
-        <div className="flex justify-end gap-2 pt-1">
+        <FormActions>
           <Button variant="secondary" onClick={onClose}>
             إلغاء
           </Button>
           <Button type="submit" variant={isDebt ? 'primary' : 'success'}>
             حفظ
           </Button>
-        </div>
+        </FormActions>
       </form>
     </Modal>
   )

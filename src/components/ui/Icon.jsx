@@ -12,6 +12,7 @@ const PATHS = {
   arrowDown: 'M12 5v14M6 13l6 6 6-6',
   arrowUp: 'M12 19V5M6 11l6-6 6 6',
   print: 'M7 8V4h10v4M7 18H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v6H7v-6Z',
+  calendar: 'M7 3v3m10-3v3M4 9h16M6 5h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z',
 }
 
 export default function Icon({ name, className = 'h-5 w-5' }) {

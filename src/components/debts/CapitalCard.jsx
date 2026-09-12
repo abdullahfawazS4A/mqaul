@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import Button from '../ui/Button.jsx'
-import { NumberInput } from '../ui/Field.jsx'
+import { MoneyInput } from '../ui/Field.jsx'
 import { CURRENCY, formatMoney } from '../../utils/format.js'
 
 /** رأس المال — إدخال أولي يدوي قابل للتعديل. */
@@ -24,9 +24,9 @@ export default function CapitalCard({ capital, onSave }) {
 
       {editing ? (
         <div className="mt-2 flex items-center gap-2">
-          <NumberInput
+          <MoneyInput
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={setDraft}
             autoFocus
             className="max-w-40"
           />

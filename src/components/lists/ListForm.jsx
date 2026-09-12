@@ -1,11 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Modal from '../ui/Modal.jsx'
 import Button from '../ui/Button.jsx'
-import Field, { ErrorMessage, Input, NumberInput, Select, Textarea } from '../ui/Field.jsx'
+import FormActions from '../ui/FormActions.jsx'
+import Field, { ErrorMessage, Input, MoneyInput, Select, Textarea } from '../ui/Field.jsx'
+import Combobox from '../ui/Combobox.jsx'
+import { todayISO } from '../../utils/format.js'
 
 const EMPTY = {
   personId: '',
   listNumber: '',
+  date: '',
   notes: '',
   value: '',
   profit: '',
@@ -27,17 +31,20 @@ export default function ListForm({ open, initial, people, onClose, onSubmit }) {
         ? {
             personId: initial.personId,
             listNumber: initial.listNumber,
+            date: initial.date || todayISO(),
             notes: initial.notes,
             value: String(initial.value),
             profit: String(initial.profit),
             status: initial.status,
           }
-        : EMPTY,
+        : { ...EMPTY, date: todayISO() },
     )
     setError('')
   }, [open, initial])
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
+  // حقول المبالغ تُمرّر النص الخام مباشرةً بدل حدث الإدخال
+  const setField = (key) => (raw) => setForm((f) => ({ ...f, [key]: raw }))
 
   const submit = (e) => {
     e.preventDefault()
@@ -61,6 +68,11 @@ export default function ListForm({ open, initial, people, onClose, onSubmit }) {
     onClose()
   }
 
+  const personOptions = useMemo(
+    () => people.map((p) => ({ id: p.id, label: p.name, hint: p.phone || '' })),
+    [people],
+  )
+
   const noPeople = people.length === 0
 
   return (
@@ -75,27 +87,32 @@ export default function ListForm({ open, initial, people, onClose, onSubmit }) {
         )}
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="اسم الشخص" hint="من الأشخاص المسجّلين في الديون">
-            <Select value={form.personId} onChange={set('personId')} disabled={noPeople} autoFocus>
-              <option value="">— اختر الشخص —</option>
-              {people.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </Select>
+          <Field label="اسم الشخص" hint="اكتب للبحث ثم اختر من النتائج">
+            <Combobox
+              value={form.personId}
+              onChange={(id) => setForm((f) => ({ ...f, personId: id }))}
+              options={personOptions}
+              placeholder="اكتب اسم الشخص…"
+              emptyText="لا يوجد شخص بهذا الاسم."
+              disabled={noPeople}
+              autoFocus
+            />
           </Field>
 
           <Field label="رقم القائمة">
             <Input value={form.listNumber} onChange={set('listNumber')} className="num text-right" />
           </Field>
 
+          <Field label="تاريخ القائمة">
+            <Input type="date" value={form.date} onChange={set('date')} />
+          </Field>
+
           <Field label="قيمة القائمة" hint="للعرض فقط — بلا أثر على الصيرفة أو رأس المال">
-            <NumberInput value={form.value} onChange={set('value')} placeholder="0" />
+            <MoneyInput value={form.value} onChange={setField('value')} placeholder="0" />
           </Field>
 
           <Field label="ربح القائمة" hint="غير المقبوض منه يُحتسب دينًا على الشخص">
-            <NumberInput value={form.profit} onChange={set('profit')} placeholder="0" />
+            <MoneyInput value={form.profit} onChange={setField('profit')} placeholder="0" />
           </Field>
         </div>
 
@@ -110,14 +127,14 @@ export default function ListForm({ open, initial, people, onClose, onSubmit }) {
           <Textarea value={form.notes} onChange={set('notes')} />
         </Field>
 
-        <div className="flex justify-end gap-2 pt-1">
+        <FormActions>
           <Button variant="secondary" onClick={onClose}>
             إلغاء
           </Button>
           <Button type="submit" disabled={noPeople}>
             حفظ
           </Button>
-        </div>
+        </FormActions>
       </form>
     </Modal>
   )

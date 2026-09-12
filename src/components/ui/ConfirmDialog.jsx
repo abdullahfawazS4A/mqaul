@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import Modal from './Modal.jsx'
 import Button from './Button.jsx'
+import FormActions from './FormActions.jsx'
 import { Input } from './Field.jsx'
 
 /**
@@ -45,7 +46,7 @@ export default function ConfirmDialog({
           </label>
         )}
 
-        <div className="flex justify-end gap-2 pt-1">
+        <FormActions>
           <Button variant="secondary" onClick={onClose}>
             إلغاء
           </Button>
@@ -59,7 +60,7 @@ export default function ConfirmDialog({
           >
             {confirmLabel}
           </Button>
-        </div>
+        </FormActions>
       </div>
     </Modal>
   )

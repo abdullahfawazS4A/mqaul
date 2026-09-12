@@ -287,7 +287,12 @@ export function DataProvider({ children }) {
     () =>
       lists.map((l) => {
         const person = people.find((p) => p.id === l.personId) || null
-        return { ...l, personName: person?.name || 'شخص محذوف', personPhone: person?.phone || '' }
+        return {
+          ...l,
+          date: l.date || '', // قوائم محفوظة قبل إضافة حقل التاريخ
+          personName: person?.name || 'شخص محذوف',
+          personPhone: person?.phone || '',
+        }
       }),
     [lists, people],
   )
@@ -301,6 +306,7 @@ export function DataProvider({ children }) {
       id: uid('l'),
       personId: person.id,
       listNumber: data.listNumber.trim(),
+      date: data.date || todayISO(),
       notes: data.notes?.trim() || '',
       value: num(data.value),
       profit: num(data.profit),
