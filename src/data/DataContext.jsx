@@ -474,6 +474,101 @@ export function DataProvider({ children }) {
     )
   }, [projects])
 
+  /* --------------------- سجل الشريك عبر المشاريع --------------------- */
+  /**
+   * الشريك اسم نصي حر (وليس personId)، ويظهر في ثلاثة حقول مختلفة:
+   * deposits.partner و expenses.spender و advances.source.
+   * لذلك تتم المطابقة على اسم مُطبَّع: بلا تشكيل ولا تطويل، ومع توحيد
+   * الهمزات والألف المقصورة والتاء المربوطة — حتى يُطابق «أبو محمد» «ابو محمد».
+   */
+  const normalizeName = (v) =>
+    String(v ?? '')
+      .replace(/[ـً-ْ]/g, '') // تطويل وتشكيل
+      .replace(/[أإآٱ]/g, 'ا')
+      .replace(/ى/g, 'ي')
+      .replace(/ة/g, 'ه')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase()
+
+  /** كل حركات المشاريع في قائمة واحدة مسطّحة، الأحدث أولًا. */
+  const projectMovements = useMemo(() => {
+    const rows = []
+    projects.forEach((project) => {
+      const push = (kind, item, who, note) =>
+        rows.push({
+          id: item.id,
+          kind,
+          projectId: project.id,
+          projectName: project.name,
+          who: (who || '').trim(),
+          note: note || '',
+          amount: num(item.amount),
+          date: item.date || '',
+        })
+      project.deposits.forEach((i) => push('deposits', i, i.partner, ''))
+      project.expenses.forEach((i) => push('expenses', i, i.spender, i.description))
+      project.advances.forEach((i) => push('advances', i, i.source, ''))
+    })
+    return rows.sort(byDateDesc)
+  }, [projects])
+
+  /**
+   * فهرس الشركاء: كل اسم ظهر في المشاريع (كشريك مسجّل أو في أي حركة)
+   * مع مجاميعه وعدد مشاريعه — مرتّبًا بالأكثر حركةً.
+   */
+  const projectPartners = useMemo(() => {
+    const map = new Map()
+    const touch = (name, projectId) => {
+      const key = normalizeName(name)
+      if (!key) return null
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          name: String(name).trim(),
+          projectIds: new Set(),
+          deposits: 0,
+          expenses: 0,
+          advances: 0,
+          movements: 0,
+        })
+      }
+      const row = map.get(key)
+      if (projectId) row.projectIds.add(projectId)
+      return row
+    }
+
+    // الشركاء المسجّلون في المشروع يظهرون حتى لو بلا حركات بعد
+    projects.forEach((p) => (p.partners || []).forEach((n) => touch(n, p.id)))
+
+    projectMovements.forEach((m) => {
+      const row = touch(m.who, m.projectId)
+      if (!row) return
+      row[m.kind] += m.amount
+      row.movements += 1
+    })
+
+    return [...map.values()]
+      .map(({ projectIds, ...r }) => ({
+        ...r,
+        projectsCount: projectIds.size,
+        net: r.deposits + r.advances - r.expenses,
+      }))
+      .sort((a, b) => b.movements - a.movements || a.name.localeCompare(b.name, 'ar'))
+  }, [projects, projectMovements])
+
+  /**
+   * سجل شريك واحد: ملخّصه + كل حركاته عبر كل المشاريع.
+   * @returns {null | {name, deposits, expenses, advances, net, projectsCount, movements: object[]}}
+   */
+  const partnerLedger = (name) => {
+    const key = normalizeName(name)
+    if (!key) return null
+    const summary = projectPartners.find((p) => p.key === key)
+    if (!summary) return null
+    return { ...summary, movements: projectMovements.filter((m) => normalizeName(m.who) === key) }
+  }
+
   /* ------------------------- النسخ الاحتياطي ---------------------------- */
 
   /** كل البيانات ككائن واحد — للتصدير. */
@@ -580,6 +675,8 @@ export function DataProvider({ children }) {
     deleteProjectItem,
     projectTotals,
     projectsTotals,
+    projectPartners,
+    partnerLedger,
     // النسخ الاحتياطي
     exportSnapshot,
     importSnapshot,

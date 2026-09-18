@@ -7,6 +7,7 @@ import PersonLedgerPage from './pages/PersonLedgerPage.jsx'
 import ListsPage from './pages/ListsPage.jsx'
 import ProjectsPage from './pages/ProjectsPage.jsx'
 import ProjectDetailsPage from './pages/ProjectDetailsPage.jsx'
+import PartnerLedgerPage from './pages/PartnerLedgerPage.jsx'
 import SettingsPage from './pages/SettingsPage.jsx'
 import NotFoundPage from './pages/NotFoundPage.jsx'
 
@@ -20,6 +21,7 @@ export default function App() {
         <Route path="/debts/:personId" element={<PersonLedgerPage />} />
         <Route path="/lists" element={<ListsPage />} />
         <Route path="/projects" element={<ProjectsPage />} />
+        <Route path="/projects/partner/:partnerName" element={<PartnerLedgerPage />} />
         <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<NotFoundPage />} />
