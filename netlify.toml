@@ -10,3 +10,9 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# الـService Worker يجب ألّا يُخزَّن، وإلا بقي المستخدمون على نسخة قديمة
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
