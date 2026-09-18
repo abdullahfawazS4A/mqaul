@@ -51,6 +51,9 @@ export const seedProjects = [
     advances: [
       { id: 'ad1', amount: 80000000, source: 'المالك — أبو سيف', date: '2026-08-05' },
     ],
+    payouts: [
+      { id: 'py1', partner: 'أبو ليث', amount: 20000000, date: '2026-08-25' },
+    ],
   },
   {
     id: 'pr2',
@@ -63,5 +66,6 @@ export const seedProjects = [
     ],
     expenses: [],
     advances: [],
+    payouts: [],
   },
 ]

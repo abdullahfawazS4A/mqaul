@@ -36,6 +36,15 @@ const SEED = {
   projects: seedProjects,
 }
 
+/** يضمن وجود كل مصفوفات الحركات — لمشاريع حُفظت قبل إضافة نوع جديد. */
+const withKinds = (p) => ({
+  ...p,
+  deposits: p.deposits || [],
+  expenses: p.expenses || [],
+  advances: p.advances || [],
+  payouts: p.payouts || [],
+})
+
 /** الحالة المحفوظة إن وُجدت، وإلا البيانات الأولية. */
 const initial = (key) => {
   const saved = loadState()
@@ -48,7 +57,7 @@ export function DataProvider({ children }) {
   const [people, setPeople] = useState(() => initial('people'))
   const [debtEntries, setDebtEntries] = useState(() => initial('debtEntries'))
   const [lists, setLists] = useState(() => initial('lists'))
-  const [projects, setProjects] = useState(() => initial('projects'))
+  const [projects, setProjects] = useState(() => initial('projects').map(withKinds))
 
   /* --------------------------- الحفظ التلقائي --------------------------- */
 
@@ -396,6 +405,7 @@ export function DataProvider({ children }) {
       deposits: [],
       expenses: [],
       advances: [],
+      payouts: [],
     }
     setProjects((prev) => [...prev, project])
     return project
@@ -450,27 +460,36 @@ export function DataProvider({ children }) {
 
   /**
    * مجاميع المشروع.
-   * available = (الإيداعات + السلف) − المصاريف — المتبقي تحت اليد في المشروع.
+   * available = (الإيداعات + السلف) − (المصاريف + المسلَّم للشركاء)
+   *           — المتبقي تحت اليد في المشروع.
    */
   const projectTotals = (project) => {
-    if (!project) return { deposits: 0, expenses: 0, advances: 0, available: 0 }
-    const sum = (arr) => arr.reduce((s, i) => s + num(i.amount), 0)
+    if (!project) return { deposits: 0, expenses: 0, advances: 0, payouts: 0, available: 0 }
+    const sum = (arr) => (arr || []).reduce((s, i) => s + num(i.amount), 0)
     const deposits = sum(project.deposits)
     const expenses = sum(project.expenses)
     const advances = sum(project.advances)
-    return { deposits, expenses, advances, available: deposits + advances - expenses }
+    const payouts = sum(project.payouts)
+    return {
+      deposits,
+      expenses,
+      advances,
+      payouts,
+      available: deposits + advances - expenses - payouts,
+    }
   }
 
   const projectsTotals = useMemo(() => {
-    const sum = (arr) => arr.reduce((s, i) => s + num(i.amount), 0)
+    const sum = (arr) => (arr || []).reduce((s, i) => s + num(i.amount), 0)
     return projects.reduce(
       (acc, p) => ({
         value: acc.value + num(p.value),
         deposits: acc.deposits + sum(p.deposits),
         expenses: acc.expenses + sum(p.expenses),
         advances: acc.advances + sum(p.advances),
+        payouts: acc.payouts + sum(p.payouts),
       }),
-      { value: 0, deposits: 0, expenses: 0, advances: 0 },
+      { value: 0, deposits: 0, expenses: 0, advances: 0, payouts: 0 },
     )
   }, [projects])
 
@@ -512,6 +531,7 @@ export function DataProvider({ children }) {
     project.deposits.forEach((i) => bump(i.partner))
     project.expenses.forEach((i) => bump(i.spender))
     project.advances.forEach((i) => bump(i.source))
+    ;(project.payouts || []).forEach((i) => bump(i.partner))
     return [...map.values()].sort(
       (a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ar'),
     )
@@ -525,20 +545,27 @@ export function DataProvider({ children }) {
   const partnerInProject = (project, name) => {
     const key = normalizeName(name)
     if (!project || !key) return null
-    const pick = (arr, field) => arr.filter((i) => normalizeName(i[field]) === key)
+    const pick = (arr, field) => (arr || []).filter((i) => normalizeName(i[field]) === key)
     const deposits = pick(project.deposits, 'partner')
     const expenses = pick(project.expenses, 'spender')
     const advances = pick(project.advances, 'source')
+    const payouts = pick(project.payouts, 'partner')
     const sum = (arr) => arr.reduce((s, i) => s + num(i.amount), 0)
-    const t = { deposits: sum(deposits), expenses: sum(expenses), advances: sum(advances) }
+    const t = {
+      deposits: sum(deposits),
+      expenses: sum(expenses),
+      advances: sum(advances),
+      payouts: sum(payouts),
+    }
     const display = projectPartnerOptions(project).find((p) => p.key === key)
     return {
       name: display?.name || String(name).trim(),
       deposits,
       expenses,
       advances,
-      count: deposits.length + expenses.length + advances.length,
-      totals: { ...t, net: t.deposits + t.advances - t.expenses },
+      payouts,
+      count: deposits.length + expenses.length + advances.length + payouts.length,
+      totals: { ...t, net: t.deposits + t.advances - t.expenses - t.payouts },
     }
   }
 
@@ -568,7 +595,7 @@ export function DataProvider({ children }) {
     setPeople(d.people)
     setDebtEntries(d.debtEntries)
     setLists(d.lists)
-    setProjects(d.projects)
+    setProjects(d.projects.map(withKinds))
     return { ok: true }
   }
 

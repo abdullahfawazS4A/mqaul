@@ -9,10 +9,11 @@ const CONFIG = {
   deposits: { add: 'إضافة إيداع شريك', edit: 'تعديل إيداع شريك' },
   expenses: { add: 'إضافة مصروف', edit: 'تعديل مصروف' },
   advances: { add: 'إضافة سلفة مستلمة', edit: 'تعديل سلفة مستلمة' },
+  payouts: { add: 'تسليم مبلغ لشريك', edit: 'تعديل التسليم' },
 }
 
 /**
- * نموذج موحّد لإضافة/تعديل إيداع شريك أو مصروف أو سلفة داخل مشروع.
+ * نموذج موحّد لإضافة/تعديل إيداع شريك أو مصروف أو سلفة أو تسليم لشريك داخل مشروع.
  * onSubmit تُعيد { ok, error } — يُعرض الخطأ داخل النموذج دون إغلاقه.
  */
 export default function ProjectEntryForm({
@@ -51,7 +52,7 @@ export default function ProjectEntryForm({
       setError('أدخل مبلغًا صحيحًا أكبر من صفر.')
       return
     }
-    if (kind === 'deposits' && !partner.trim()) {
+    if ((kind === 'deposits' || kind === 'payouts') && !partner.trim()) {
       setError('اسم الشريك مطلوب.')
       return
     }
@@ -69,7 +70,7 @@ export default function ProjectEntryForm({
     }
 
     const payload = { amount: value, date }
-    if (kind === 'deposits') payload.partner = partner.trim()
+    if (kind === 'deposits' || kind === 'payouts') payload.partner = partner.trim()
     if (kind === 'expenses') {
       payload.description = description.trim()
       payload.spender = spender.trim()
@@ -98,7 +99,7 @@ export default function ProjectEntryForm({
           />
         </Field>
 
-        {kind === 'deposits' &&
+        {(kind === 'deposits' || kind === 'payouts') &&
           (partners.length > 0 ? (
             <Field label="الشريك">
               <Select value={partner} onChange={(e) => setPartner(e.target.value)}>

@@ -19,6 +19,7 @@ const KIND_LABELS = {
   deposits: 'إيداع الشريك',
   expenses: 'المصروف',
   advances: 'السلفة',
+  payouts: 'التسليم للشريك',
 }
 
 export default function ProjectDetailsPage() {
@@ -94,6 +95,7 @@ export default function ProjectDetailsPage() {
         note: i.description,
       })),
       ...project.advances.map((i) => ({ ...i, kind: 'سلفة مستلمة', who: i.source, note: '' })),
+      ...project.payouts.map((i) => ({ ...i, kind: 'تسليم لشريك', who: i.partner, note: '' })),
     ].sort((a, b) => (a.date < b.date ? 1 : -1))
 
     downloadCSV(
@@ -190,7 +192,7 @@ export default function ProjectDetailsPage() {
             <div className="min-w-0">
               <p className="text-xs font-medium text-slate-700">حركات شريك معيّن</p>
               <p className="mt-0.5 text-xs text-slate-500">
-                اختر اسمًا لتُفلتر الإيداعات والمصاريف والسلف عليه.
+                اختر اسمًا لتُفلتر الإيداعات والمصاريف والسلف والتسليمات عليه.
               </p>
             </div>
             <div className="w-full sm:w-72">
@@ -205,7 +207,7 @@ export default function ProjectDetailsPage() {
           </div>
 
           {partner && (
-            <div className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4 text-center sm:grid-cols-4">
+            <div className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4 text-center sm:grid-cols-5">
               <div>
                 <p className="text-[11px] text-slate-400">أودع</p>
                 <p className="num text-sm font-semibold text-emerald-600">
@@ -225,6 +227,12 @@ export default function ProjectDetailsPage() {
                 </p>
               </div>
               <div>
+                <p className="text-[11px] text-slate-400">استلم</p>
+                <p className="num text-sm font-semibold text-amber-600">
+                  {formatMoney(partner.totals.payouts)}
+                </p>
+              </div>
+              <div>
                 <p className="text-[11px] text-slate-400">الصافي</p>
                 <p
                   className={`num text-sm font-semibold ${
@@ -239,15 +247,16 @@ export default function ProjectDetailsPage() {
         </div>
       )}
 
-      <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard label="مجموع الإيداعات" value={totals.deposits} tone="positive" />
         <StatCard label="مجموع المصاريف" value={totals.expenses} tone="negative" />
         <StatCard label="مجموع السلف" value={totals.advances} tone="neutral" />
+        <StatCard label="المسلَّم للشركاء" value={totals.payouts} tone="negative" />
         <StatCard
           label="المتبقي تحت اليد"
           value={totals.available}
           tone={totals.available < 0 ? 'negative' : 'positive'}
-          hint="(إيداعات + سلف) − مصاريف"
+          hint="(إيداعات + سلف) − (مصاريف + تسليمات)"
         />
       </div>
 
@@ -283,6 +292,16 @@ export default function ProjectDetailsPage() {
           amountTone="text-slate-800"
           emptyText={emptyLabel('سلف مستلمة')}
           {...sectionProps('advances')}
+        />
+
+        <ProjectSection
+          title="التسليمات للشركاء"
+          subtitle={countLabel(shown.payouts, 'تسليم')}
+          items={shown.payouts}
+          columns={[{ key: 'partner', label: 'الشريك' }]}
+          amountTone="text-amber-600"
+          emptyText={emptyLabel('تسليمات')}
+          {...sectionProps('payouts')}
         />
       </div>
 
@@ -322,8 +341,8 @@ export default function ProjectDetailsPage() {
       <ConfirmDialog
         open={confirm?.kind === 'project'}
         title="حذف المشروع"
-        message={`حذف «${project.name}» وكل إيداعاته ومصاريفه وسلفه.`}
-        details={`${project.deposits.length} إيداع، ${project.expenses.length} مصروف، ${project.advances.length} سلفة.`}
+        message={`حذف «${project.name}» وكل إيداعاته ومصاريفه وسلفه وتسليماته.`}
+        details={`${project.deposits.length} إيداع، ${project.expenses.length} مصروف، ${project.advances.length} سلفة، ${project.payouts.length} تسليم.`}
         confirmPhrase={project.name}
         confirmLabel="حذف المشروع"
         onConfirm={removeProject}
