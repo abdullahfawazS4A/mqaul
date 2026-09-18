@@ -492,22 +492,21 @@ export function DataProvider({ children }) {
       .toLowerCase()
 
   /**
-   * أسماء كل من له ذكر في المشروع: الشركاء المسجّلون، ومن أودع،
-   * ومن صرف، ومن جاءت السلفة عن طريقه — مع عدد حركات كل اسم.
+   * شركاء هذا المشروع المسجّلون في بياناته فقط — مع عدد حركات كل شريك.
+   * الأسماء التي تظهر في الحركات دون أن تكون شريكًا مسجّلًا (مثل من قام
+   * بالصرف أو مصدر السلفة) لا تُدرج هنا؛ تُضاف الأسماء من «تعديل المشروع».
    */
   const projectPartnerOptions = (project) => {
     if (!project) return []
     const map = new Map()
-    const touch = (raw) => {
+    ;(project.partners || []).forEach((raw) => {
       const name = String(raw || '').trim()
       const key = normalizeName(name)
-      if (!key) return null
-      if (!map.has(key)) map.set(key, { key, name, count: 0 })
-      return map.get(key)
-    }
-    ;(project.partners || []).forEach(touch)
+      if (!key || map.has(key)) return
+      map.set(key, { key, name, count: 0 })
+    })
     const bump = (raw) => {
-      const row = touch(raw)
+      const row = map.get(normalizeName(raw))
       if (row) row.count += 1
     }
     project.deposits.forEach((i) => bump(i.partner))
