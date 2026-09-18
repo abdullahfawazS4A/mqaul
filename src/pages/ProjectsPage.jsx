@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useProjects } from '../hooks/useProjects.js'
 import PageHeader from '../components/ui/PageHeader.jsx'
 import StatCard from '../components/ui/StatCard.jsx'
@@ -7,32 +7,15 @@ import Button from '../components/ui/Button.jsx'
 import Icon from '../components/ui/Icon.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
 import { Input } from '../components/ui/Field.jsx'
-import Combobox from '../components/ui/Combobox.jsx'
 import { useToast } from '../components/ui/Toast.jsx'
 import ProjectForm from '../components/projects/ProjectForm.jsx'
 import { CURRENCY, formatMoney } from '../utils/format.js'
 
 export default function ProjectsPage() {
-  const { projects, addProject, projectTotals, projectsTotals, projectPartners } = useProjects()
+  const { projects, addProject, projectTotals, projectsTotals } = useProjects()
   const { notify } = useToast()
-  const navigate = useNavigate()
   const [formOpen, setFormOpen] = useState(false)
   const [search, setSearch] = useState('')
-
-  const partnerOptions = useMemo(
-    () =>
-      projectPartners.map((p) => ({
-        id: p.key,
-        label: p.name,
-        hint: p.movements > 0 ? `${p.movements} حركة` : 'بلا حركات',
-      })),
-    [projectPartners],
-  )
-
-  const openPartner = (key) => {
-    const partner = projectPartners.find((p) => p.key === key)
-    if (partner) navigate(`/projects/partner/${encodeURIComponent(partner.name)}`)
-  }
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -64,25 +47,13 @@ export default function ProjectsPage() {
             <StatCard label="مجموع المصاريف" value={projectsTotals.expenses} tone="negative" />
           </div>
 
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="mb-4">
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="بحث باسم المشروع أو الشركة أو الشريك…"
               className="w-full sm:w-80"
             />
-
-            {partnerOptions.length > 0 && (
-              <div className="w-full sm:w-72">
-                <Combobox
-                  value=""
-                  onChange={openPartner}
-                  options={partnerOptions}
-                  placeholder="اختر شريكًا لعرض كل حركاته…"
-                  emptyText="لا يوجد شريك بهذا الاسم."
-                />
-              </div>
-            )}
           </div>
         </>
       )}

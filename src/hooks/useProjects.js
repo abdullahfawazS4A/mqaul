@@ -13,8 +13,8 @@ export function useProjects() {
     deleteProjectItem,
     projectTotals,
     projectsTotals,
-    projectPartners,
-    partnerLedger,
+    projectPartnerOptions,
+    partnerInProject,
   } = useData()
 
   return {
@@ -28,7 +28,7 @@ export function useProjects() {
     deleteProjectItem,
     projectTotals,
     projectsTotals,
-    projectPartners,
-    partnerLedger,
+    projectPartnerOptions,
+    partnerInProject,
   }
 }

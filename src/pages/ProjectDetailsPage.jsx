@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useProjects } from '../hooks/useProjects.js'
 import PageHeader from '../components/ui/PageHeader.jsx'
@@ -7,6 +7,7 @@ import Button from '../components/ui/Button.jsx'
 import Icon from '../components/ui/Icon.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
 import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
+import Combobox from '../components/ui/Combobox.jsx'
 import { useToast } from '../components/ui/Toast.jsx'
 import ProjectSection from '../components/projects/ProjectSection.jsx'
 import ProjectEntryForm from '../components/projects/ProjectEntryForm.jsx'
@@ -31,14 +32,30 @@ export default function ProjectDetailsPage() {
     deleteProjectItem,
     updateProject,
     deleteProject,
+    projectPartnerOptions,
+    partnerInProject,
   } = useProjects()
   const { notify } = useToast()
 
   const [entryForm, setEntryForm] = useState(null) // { kind, initial? }
   const [editOpen, setEditOpen] = useState(false)
   const [confirm, setConfirm] = useState(null) // { kind: 'item'|'project', itemKind?, item? }
+  const [partnerKey, setPartnerKey] = useState('') // '' = كل الحركات
 
   const project = getProject(projectId)
+
+  const partnerOptions = useMemo(
+    () =>
+      projectPartnerOptions(project).map((p) => ({
+        id: p.key,
+        label: p.name,
+        hint: p.count > 0 ? `${p.count} حركة` : 'بلا حركات',
+      })),
+    [project],
+  )
+
+  // العناصر المعروضة هي عناصر المشروع نفسها، فيظل التعديل والحذف يعملان
+  const partner = partnerKey ? partnerInProject(project, partnerKey) : null
 
   if (!project) {
     return (
@@ -91,6 +108,12 @@ export default function ProjectDetailsPage() {
       stampedName(`mqaul-project-${project.name}`, 'csv'),
     )
   }
+
+  const shown = partner || project
+  const countLabel = (arr, word) =>
+    partner ? `${arr.length} ${word} لـ${partner.name}` : `${arr.length} ${word}`
+  const emptyLabel = (word) =>
+    partner ? `لا توجد ${word} لهذا الشريك في المشروع.` : `لا توجد ${word} بعد.`
 
   const sectionProps = (kind) => ({
     onAdd: () => setEntryForm({ kind }),
@@ -161,6 +184,61 @@ export default function ProjectDetailsPage() {
         </div>
       </div>
 
+      {partnerOptions.length > 0 && (
+        <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4 print:hidden">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-slate-700">حركات شريك معيّن</p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                اختر اسمًا لتُفلتر الإيداعات والمصاريف والسلف عليه.
+              </p>
+            </div>
+            <div className="w-full sm:w-72">
+              <Combobox
+                value={partnerKey}
+                onChange={setPartnerKey}
+                options={partnerOptions}
+                placeholder="كل الحركات — اختر شريكًا…"
+                emptyText="لا يوجد اسم مطابق."
+              />
+            </div>
+          </div>
+
+          {partner && (
+            <div className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4 text-center sm:grid-cols-4">
+              <div>
+                <p className="text-[11px] text-slate-400">أودع</p>
+                <p className="num text-sm font-semibold text-emerald-600">
+                  {formatMoney(partner.totals.deposits)}
+                </p>
+              </div>
+              <div>
+                <p className="text-[11px] text-slate-400">صرف</p>
+                <p className="num text-sm font-semibold text-red-600">
+                  {formatMoney(partner.totals.expenses)}
+                </p>
+              </div>
+              <div>
+                <p className="text-[11px] text-slate-400">سلف عن طريقه</p>
+                <p className="num text-sm font-semibold text-slate-700">
+                  {formatMoney(partner.totals.advances)}
+                </p>
+              </div>
+              <div>
+                <p className="text-[11px] text-slate-400">الصافي</p>
+                <p
+                  className={`num text-sm font-semibold ${
+                    partner.totals.net < 0 ? 'text-red-600' : 'text-slate-800'
+                  }`}
+                >
+                  {formatMoney(partner.totals.net)}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="مجموع الإيداعات" value={totals.deposits} tone="positive" />
         <StatCard label="مجموع المصاريف" value={totals.expenses} tone="negative" />
@@ -176,34 +254,34 @@ export default function ProjectDetailsPage() {
       <div className="space-y-4">
         <ProjectSection
           title="إيداعات الشركاء"
-          subtitle={`${project.deposits.length} إيداع`}
-          items={project.deposits}
+          subtitle={countLabel(shown.deposits, 'إيداع')}
+          items={shown.deposits}
           columns={[{ key: 'partner', label: 'الشريك' }]}
           amountTone="text-emerald-600"
-          emptyText="لا توجد إيداعات بعد."
+          emptyText={emptyLabel('إيداعات')}
           {...sectionProps('deposits')}
         />
 
         <ProjectSection
           title="المصاريف"
-          subtitle={`${project.expenses.length} مصروف`}
-          items={project.expenses}
+          subtitle={countLabel(shown.expenses, 'مصروف')}
+          items={shown.expenses}
           columns={[
             { key: 'description', label: 'الوصف / السبب' },
             { key: 'spender', label: 'من قام بالصرف' },
           ]}
           amountTone="text-red-600"
-          emptyText="لا توجد مصاريف بعد."
+          emptyText={emptyLabel('مصاريف')}
           {...sectionProps('expenses')}
         />
 
         <ProjectSection
           title="السلف المستلمة"
-          subtitle={`${project.advances.length} سلفة`}
-          items={project.advances}
+          subtitle={countLabel(shown.advances, 'سلفة')}
+          items={shown.advances}
           columns={[{ key: 'source', label: 'من جهة / شخص' }]}
           amountTone="text-slate-800"
-          emptyText="لا توجد سلف مستلمة بعد."
+          emptyText={emptyLabel('سلف مستلمة')}
           {...sectionProps('advances')}
         />
       </div>

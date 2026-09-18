@@ -474,7 +474,7 @@ export function DataProvider({ children }) {
     )
   }, [projects])
 
-  /* --------------------- سجل الشريك عبر المشاريع --------------------- */
+  /* --------------------- الشريك داخل المشروع --------------------- */
   /**
    * الشريك اسم نصي حر (وليس personId)، ويظهر في ثلاثة حقول مختلفة:
    * deposits.partner و expenses.spender و advances.source.
@@ -491,82 +491,56 @@ export function DataProvider({ children }) {
       .trim()
       .toLowerCase()
 
-  /** كل حركات المشاريع في قائمة واحدة مسطّحة، الأحدث أولًا. */
-  const projectMovements = useMemo(() => {
-    const rows = []
-    projects.forEach((project) => {
-      const push = (kind, item, who, note) =>
-        rows.push({
-          id: item.id,
-          kind,
-          projectId: project.id,
-          projectName: project.name,
-          who: (who || '').trim(),
-          note: note || '',
-          amount: num(item.amount),
-          date: item.date || '',
-        })
-      project.deposits.forEach((i) => push('deposits', i, i.partner, ''))
-      project.expenses.forEach((i) => push('expenses', i, i.spender, i.description))
-      project.advances.forEach((i) => push('advances', i, i.source, ''))
-    })
-    return rows.sort(byDateDesc)
-  }, [projects])
-
   /**
-   * فهرس الشركاء: كل اسم ظهر في المشاريع (كشريك مسجّل أو في أي حركة)
-   * مع مجاميعه وعدد مشاريعه — مرتّبًا بالأكثر حركةً.
+   * أسماء كل من له ذكر في المشروع: الشركاء المسجّلون، ومن أودع،
+   * ومن صرف، ومن جاءت السلفة عن طريقه — مع عدد حركات كل اسم.
    */
-  const projectPartners = useMemo(() => {
+  const projectPartnerOptions = (project) => {
+    if (!project) return []
     const map = new Map()
-    const touch = (name, projectId) => {
+    const touch = (raw) => {
+      const name = String(raw || '').trim()
       const key = normalizeName(name)
       if (!key) return null
-      if (!map.has(key)) {
-        map.set(key, {
-          key,
-          name: String(name).trim(),
-          projectIds: new Set(),
-          deposits: 0,
-          expenses: 0,
-          advances: 0,
-          movements: 0,
-        })
-      }
-      const row = map.get(key)
-      if (projectId) row.projectIds.add(projectId)
-      return row
+      if (!map.has(key)) map.set(key, { key, name, count: 0 })
+      return map.get(key)
     }
-
-    // الشركاء المسجّلون في المشروع يظهرون حتى لو بلا حركات بعد
-    projects.forEach((p) => (p.partners || []).forEach((n) => touch(n, p.id)))
-
-    projectMovements.forEach((m) => {
-      const row = touch(m.who, m.projectId)
-      if (!row) return
-      row[m.kind] += m.amount
-      row.movements += 1
-    })
-
-    return [...map.values()]
-      .map(({ projectIds, ...r }) => ({
-        ...r,
-        projectsCount: projectIds.size,
-        net: r.deposits + r.advances - r.expenses,
-      }))
-      .sort((a, b) => b.movements - a.movements || a.name.localeCompare(b.name, 'ar'))
-  }, [projects, projectMovements])
+    ;(project.partners || []).forEach(touch)
+    const bump = (raw) => {
+      const row = touch(raw)
+      if (row) row.count += 1
+    }
+    project.deposits.forEach((i) => bump(i.partner))
+    project.expenses.forEach((i) => bump(i.spender))
+    project.advances.forEach((i) => bump(i.source))
+    return [...map.values()].sort(
+      (a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ar'),
+    )
+  }
 
   /**
-   * سجل شريك واحد: ملخّصه + كل حركاته عبر كل المشاريع.
-   * @returns {null | {name, deposits, expenses, advances, net, projectsCount, movements: object[]}}
+   * حركات شريك واحد داخل مشروع واحد — العناصر نفسها (لا نسخ) حتى يظل
+   * التعديل والحذف يعملان عليها مباشرةً.
+   * @returns {null | {name, deposits, expenses, advances, count, totals}}
    */
-  const partnerLedger = (name) => {
+  const partnerInProject = (project, name) => {
     const key = normalizeName(name)
-    if (!key) return null
-    const summary = projectPartners.find((p) => p.key === key)
-    if (!summary) return null
-    return { ...summary, movements: projectMovements.filter((m) => normalizeName(m.who) === key) }
+    if (!project || !key) return null
+    const pick = (arr, field) => arr.filter((i) => normalizeName(i[field]) === key)
+    const deposits = pick(project.deposits, 'partner')
+    const expenses = pick(project.expenses, 'spender')
+    const advances = pick(project.advances, 'source')
+    const sum = (arr) => arr.reduce((s, i) => s + num(i.amount), 0)
+    const t = { deposits: sum(deposits), expenses: sum(expenses), advances: sum(advances) }
+    const display = projectPartnerOptions(project).find((p) => p.key === key)
+    return {
+      name: display?.name || String(name).trim(),
+      deposits,
+      expenses,
+      advances,
+      count: deposits.length + expenses.length + advances.length,
+      totals: { ...t, net: t.deposits + t.advances - t.expenses },
+    }
   }
 
   /* ------------------------- النسخ الاحتياطي ---------------------------- */
@@ -675,8 +649,8 @@ export function DataProvider({ children }) {
     deleteProjectItem,
     projectTotals,
     projectsTotals,
-    projectPartners,
-    partnerLedger,
+    projectPartnerOptions,
+    partnerInProject,
     // النسخ الاحتياطي
     exportSnapshot,
     importSnapshot,
