@@ -62,7 +62,8 @@ export default function ProjectEntriesPage() {
     )
   }
 
-  const partner = partnerKey ? partnerInProject(project, partnerKey) : null
+  // السلف خارج نطاق الشريك، فلا يُطبَّق عليها الحصر
+  const partner = meta.partnerScoped && partnerKey ? partnerInProject(project, partnerKey) : null
   // العناصر من المشروع نفسه، فيظل التعديل والحذف يعملان
   const items = (partner || project)[kind] || []
   const total = items.reduce((s, i) => s + Number(i.amount || 0), 0)
@@ -151,7 +152,7 @@ export default function ProjectEntriesPage() {
         />
       </div>
 
-      {partnerOptions.length > 0 && (
+      {meta.partnerScoped && partnerOptions.length > 0 && (
         <Card className="mb-4 p-3 sm:p-4 print:hidden">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-slate-500">

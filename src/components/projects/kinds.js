@@ -16,6 +16,7 @@ export const KIND_META = {
     tone: 'emerald',
     amountTone: 'text-emerald-600',
     cardTone: 'positive',
+    partnerScoped: true,
     columns: [{ key: 'partner', label: 'الشريك' }],
   },
   expenses: {
@@ -28,6 +29,7 @@ export const KIND_META = {
     tone: 'red',
     amountTone: 'text-red-600',
     cardTone: 'negative',
+    partnerScoped: true,
     columns: [
       { key: 'description', label: 'الوصف / السبب' },
       { key: 'spender', label: 'من قام بالصرف' },
@@ -45,6 +47,8 @@ export const KIND_META = {
     tone: 'slate',
     amountTone: 'text-slate-800',
     cardTone: 'neutral',
+    // السلف تستلمها الشركة لا شريك بعينه، فلا تُحصر على شريك
+    partnerScoped: false,
     columns: [{ key: 'source', label: 'من جهة / شخص' }],
   },
   payouts: {
@@ -57,6 +61,7 @@ export const KIND_META = {
     tone: 'amber',
     amountTone: 'text-amber-600',
     cardTone: 'negative',
+    partnerScoped: true,
     columns: [{ key: 'partner', label: 'الشريك' }],
   },
 }

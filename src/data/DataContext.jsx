@@ -562,8 +562,10 @@ export function DataProvider({ children }) {
 
   /* --------------------- الشريك داخل المشروع --------------------- */
   /**
-   * الشريك اسم نصي حر (وليس personId)، ويظهر في ثلاثة حقول مختلفة:
-   * deposits.partner و expenses.spender و advances.source.
+   * الشريك اسم نصي حر (وليس personId)، ويظهر في حقول مختلفة:
+   * deposits.partner و expenses.spender و payouts.partner.
+   * السلف خارج نطاق الشريك: الشركة هي من يستلمها، و advances.source هو
+   * الجهة المُقرِضة لا شريكًا في المشروع.
    * لذلك تتم المطابقة على اسم مُطبَّع: بلا تشكيل ولا تطويل، ومع توحيد
    * الهمزات والألف المقصورة والتاء المربوطة — حتى يُطابق «أبو محمد» «ابو محمد».
    */
@@ -597,7 +599,6 @@ export function DataProvider({ children }) {
     }
     project.deposits.forEach((i) => bump(i.partner))
     project.expenses.forEach((i) => bump(i.spender))
-    project.advances.forEach((i) => bump(i.source))
     ;(project.payouts || []).forEach((i) => bump(i.partner))
     return [...map.values()].sort(
       (a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ar'),
@@ -607,7 +608,7 @@ export function DataProvider({ children }) {
   /**
    * حركات شريك واحد داخل مشروع واحد — العناصر نفسها (لا نسخ) حتى يظل
    * التعديل والحذف يعملان عليها مباشرةً.
-   * @returns {null | {name, deposits, expenses, advances, count, totals}}
+   * @returns {null | {name, deposits, expenses, payouts, count, totals}}
    */
   const partnerInProject = (project, name) => {
     const key = normalizeName(name)
@@ -615,13 +616,13 @@ export function DataProvider({ children }) {
     const pick = (arr, field) => (arr || []).filter((i) => normalizeName(i[field]) === key)
     const deposits = pick(project.deposits, 'partner')
     const expenses = pick(project.expenses, 'spender')
-    const advances = pick(project.advances, 'source')
     const payouts = pick(project.payouts, 'partner')
+    // السلف لا تُنسب لشريك — الشركة تستلمها، فتبقى خارج حساب الشريك
+    const advances = []
     const sum = (arr) => arr.reduce((s, i) => s + num(i.amount), 0)
     const t = {
       deposits: sum(deposits),
       expenses: sum(expenses),
-      advances: sum(advances),
       payouts: sum(payouts),
     }
     const display = projectPartnerOptions(project).find((p) => p.key === key)
@@ -631,8 +632,8 @@ export function DataProvider({ children }) {
       expenses,
       advances,
       payouts,
-      count: deposits.length + expenses.length + advances.length + payouts.length,
-      totals: { ...t, net: t.deposits + t.advances - t.expenses - t.payouts },
+      count: deposits.length + expenses.length + payouts.length,
+      totals: { ...t, net: t.deposits - t.expenses - t.payouts },
     }
   }
 

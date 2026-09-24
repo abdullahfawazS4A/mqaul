@@ -178,7 +178,7 @@ export default function ProjectDetailsPage() {
           </div>
 
           {partner && (
-            <div className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4 text-center sm:grid-cols-5">
+            <div className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-100 pt-4 text-center sm:grid-cols-4">
               <div>
                 <p className="text-[11px] text-slate-400">أودع</p>
                 <p className="num text-sm font-semibold text-emerald-600">
@@ -189,12 +189,6 @@ export default function ProjectDetailsPage() {
                 <p className="text-[11px] text-slate-400">صرف</p>
                 <p className="num text-sm font-semibold text-red-600">
                   {formatMoney(partner.totals.expenses)}
-                </p>
-              </div>
-              <div>
-                <p className="text-[11px] text-slate-400">سلف عن طريقه</p>
-                <p className="num text-sm font-semibold text-slate-700">
-                  {formatMoney(partner.totals.advances)}
                 </p>
               </div>
               <div>
@@ -221,12 +215,15 @@ export default function ProjectDetailsPage() {
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {KIND_ORDER.map((k) => {
           const meta = KIND_META[k]
-          const items = shown[k] || []
+          // السلف لا تُحصر على شريك، فتبقى على مستوى المشروع دائمًا
+          const items = (meta.partnerScoped ? shown : project)[k] || []
           const sum = items.reduce((acc, i) => acc + Number(i.amount || 0), 0)
           return (
             <Link
               key={k}
-              to={`/projects/${project.id}/${k}${partnerKey ? `?partner=${encodeURIComponent(partnerKey)}` : ''}`}
+              to={`/projects/${project.id}/${k}${
+                meta.partnerScoped && partnerKey ? `?partner=${encodeURIComponent(partnerKey)}` : ''
+              }`}
               className="group flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5 transition-colors hover:border-slate-300 hover:bg-slate-50"
             >
               <div className="min-w-0">
@@ -236,7 +233,7 @@ export default function ProjectDetailsPage() {
                 </p>
                 <p className="num mt-1 text-xs text-slate-400">
                   {items.length} {meta.word}
-                  {partner ? ` لـ${partner.name}` : ''}
+                  {partner && meta.partnerScoped ? ` لـ${partner.name}` : ''}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
