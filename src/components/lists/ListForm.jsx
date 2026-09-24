@@ -8,6 +8,7 @@ import { todayISO } from '../../utils/format.js'
 
 const EMPTY = {
   personId: '',
+  name: '',
   listNumber: '',
   date: '',
   notes: '',
@@ -30,6 +31,7 @@ export default function ListForm({ open, initial, people, onClose, onSubmit }) {
       initial
         ? {
             personId: initial.personId,
+            name: initial.name || '',
             listNumber: initial.listNumber,
             date: initial.date || todayISO(),
             notes: initial.notes,
@@ -96,6 +98,14 @@ export default function ListForm({ open, initial, people, onClose, onSubmit }) {
               emptyText="لا يوجد شخص بهذا الاسم."
               disabled={noPeople}
               autoFocus
+            />
+          </Field>
+
+          <Field label="اسم القائمة" hint="اختياري — للتمييز بين القوائم">
+            <Input
+              value={form.name}
+              onChange={set('name')}
+              placeholder="مثال: قائمة حديد التسليح"
             />
           </Field>
 

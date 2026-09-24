@@ -54,7 +54,11 @@ export default function ListsPage() {
     return lists
       .filter((l) => (filter === 'all' ? true : l.status === filter))
       .filter((l) =>
-        q ? `${l.personName} ${l.listNumber} ${l.date} ${l.notes}`.toLowerCase().includes(q) : true,
+        q
+          ? `${l.name} ${l.personName} ${l.listNumber} ${l.date} ${l.notes}`
+              .toLowerCase()
+              .includes(q)
+          : true,
       )
   }, [lists, filter, search])
 
@@ -94,6 +98,7 @@ export default function ListsPage() {
     downloadXLSX(
       visible,
       [
+        { key: 'name', label: 'اسم القائمة' },
         { key: 'personName', label: 'اسم الشخص' },
         { key: 'listNumber', label: 'رقم القائمة' },
         { key: 'date', label: 'التاريخ' },
@@ -126,7 +131,7 @@ export default function ListsPage() {
   return (
     <div>
       <PageHeader
-        title="القوائم"
+        title="مكاتب"
         description="سجل القوائم — لا يؤثر على الصيرفة أو رأس المال. كل قائمة باسم شخص مسجّل في الديون."
         action={
           <Button onClick={openAdd}>
@@ -159,7 +164,7 @@ export default function ListsPage() {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="بحث بالاسم أو رقم القائمة أو الملاحظات…"
+              placeholder="بحث باسم القائمة أو الشخص أو رقمها أو الملاحظات…"
               className="w-full sm:w-72"
             />
             <div className="flex gap-1.5">
@@ -287,7 +292,9 @@ export default function ListsPage() {
 
       <ConfirmDialog
         open={confirmList !== null}
-        message={`حذف القائمة رقم ${confirmList?.listNumber} باسم «${confirmList?.personName}».`}
+        message={`حذف ${
+          confirmList?.name ? `«${confirmList.name}» ` : ''
+        }قائمة رقم ${confirmList?.listNumber} باسم «${confirmList?.personName}».`}
         details={`القيمة ${formatMoney(confirmList?.value || 0)} — الربح ${formatMoney(
           confirmList?.profit || 0,
         )} ${CURRENCY}`}

@@ -53,7 +53,12 @@ export default function ListsTable({ lists, onOpen, onEdit, onDelete, onToggleSt
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-slate-800">{l.personName}</p>
+                <p className="truncate text-sm font-medium text-slate-800">
+                  {l.name || l.personName}
+                </p>
+                {l.name && (
+                  <p className="truncate text-xs text-slate-500">{l.personName}</p>
+                )}
                 <p className="num text-xs text-slate-400">
                   قائمة رقم {l.listNumber} · {formatDate(l.date)}
                 </p>
@@ -90,6 +95,7 @@ export default function ListsTable({ lists, onOpen, onEdit, onDelete, onToggleSt
         <table className="w-full text-right text-sm">
           <thead className="bg-slate-50 text-xs text-slate-500">
             <tr>
+              <th className="px-4 py-2.5 font-medium">اسم القائمة</th>
               <th className="px-4 py-2.5 font-medium">اسم الشخص</th>
               <th className="px-4 py-2.5 font-medium">رقم القائمة</th>
               <th className="px-4 py-2.5 font-medium">التاريخ</th>
@@ -103,7 +109,10 @@ export default function ListsTable({ lists, onOpen, onEdit, onDelete, onToggleSt
           <tbody className="divide-y divide-slate-100">
             {lists.map((l) => (
               <tr key={l.id} {...openProps(l)} className="cursor-pointer hover:bg-slate-50/70">
-                <td className="px-4 py-2.5 font-medium text-slate-800">{l.personName}</td>
+                <td className="max-w-[12rem] truncate px-4 py-2.5 font-medium text-slate-800">
+                  {l.name || '—'}
+                </td>
+                <td className="px-4 py-2.5 text-slate-700">{l.personName}</td>
                 <td className="num px-4 py-2.5 text-slate-500">{l.listNumber}</td>
                 <td className="num px-4 py-2.5 text-slate-500">{formatDate(l.date)}</td>
                 <td className="num px-4 py-2.5 text-slate-700">{formatMoney(l.value)}</td>

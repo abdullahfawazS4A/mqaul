@@ -125,7 +125,7 @@ export default function DashboardPage() {
         <SectionLink
           to="/lists"
           icon="list"
-          title="القوائم"
+          title="مكاتب"
           lines={[
             { label: 'عدد القوائم', value: lists.length, money: false },
             { label: 'غير مقبوضة', value: unpaidLists, money: false, tone: 'text-amber-600' },

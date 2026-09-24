@@ -324,6 +324,7 @@ export function DataProvider({ children }) {
     const item = {
       id: uid('l'),
       personId: person.id,
+      name: data.name?.trim() || '',
       listNumber: data.listNumber.trim(),
       date: data.date || todayISO(),
       notes: data.notes?.trim() || '',
@@ -349,6 +350,7 @@ export function DataProvider({ children }) {
           ? {
               ...l,
               ...patch,
+              name: patch.name === undefined ? l.name : patch.name.trim(),
               listNumber: (patch.listNumber ?? l.listNumber).trim(),
               // تاريخ فارغ في التعديل لا يمحو التاريخ المحفوظ
               date: patch.date || l.date,

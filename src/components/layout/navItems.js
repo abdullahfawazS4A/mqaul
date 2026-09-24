@@ -9,7 +9,7 @@ export const NAV_SECTIONS = [
     items: [
       { to: '/treasury', label: 'الصيرفة', icon: 'wallet' },
       { to: '/debts', label: 'الديون', icon: 'users' },
-      { to: '/lists', label: 'القوائم', icon: 'list' },
+      { to: '/lists', label: 'مكاتب', icon: 'list' },
     ],
   },
   {
@@ -29,6 +29,6 @@ export const MOBILE_NAV = [
   { to: '/', label: 'الرئيسية', icon: 'home', end: true },
   { to: '/treasury', label: 'الصيرفة', icon: 'wallet' },
   { to: '/debts', label: 'الديون', icon: 'users' },
-  { to: '/lists', label: 'القوائم', icon: 'list' },
+  { to: '/lists', label: 'مكاتب', icon: 'list' },
   { to: '/projects', label: 'المشاريع', icon: 'building' },
 ]

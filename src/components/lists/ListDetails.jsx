@@ -9,12 +9,13 @@ export default function ListDetails({ item, onClose, onEdit, onDelete, onToggleS
 
   return (
     <DetailsModal
-      title={`قائمة رقم ${item.listNumber}`}
+      title={item.name || `قائمة رقم ${item.listNumber}`}
       tone={paid ? 'emerald' : 'amber'}
       badge={paid ? 'واصل (مقبوض)' : 'دين (غير مقبوض)'}
       amount={item.profit}
       amountSuffix={`${CURRENCY} ربحًا`}
       rows={[
+        { label: 'رقم القائمة', value: item.listNumber, num: true },
         ...(item.personName ? [{ label: 'الشخص', value: item.personName }] : []),
         { label: 'التاريخ', value: formatDate(item.date), num: true },
         { label: 'قيمة القائمة', value: `${formatMoney(item.value)} ${CURRENCY}`, num: true },

@@ -81,7 +81,7 @@ export default function PersonListsPage() {
       <div className="rounded-xl border border-slate-200 bg-white">
         <EmptyState text="الشخص غير موجود.">
           <Link to="/lists">
-            <Button variant="secondary">العودة إلى القوائم</Button>
+            <Button variant="secondary">العودة إلى مكاتب</Button>
           </Link>
         </EmptyState>
       </div>
@@ -109,6 +109,7 @@ export default function PersonListsPage() {
     const rows = [
       ...lists.map((l) => ({
         kind: 'قائمة',
+        name: l.name || '',
         ref: l.listNumber,
         date: formatDate(l.date),
         value: l.value,
@@ -118,6 +119,7 @@ export default function PersonListsPage() {
       })),
       ...receipts.map((r) => ({
         kind: 'سند قبض',
+        name: '',
         ref: '',
         date: formatDate(r.date),
         value: '',
@@ -132,6 +134,7 @@ export default function PersonListsPage() {
       rows,
       [
         { key: 'kind', label: 'النوع' },
+        { key: 'name', label: 'اسم القائمة', width: 26 },
         { key: 'ref', label: 'رقم القائمة' },
         { key: 'date', label: 'التاريخ' },
         { key: 'value', label: 'قيمة القائمة' },
@@ -168,7 +171,7 @@ export default function PersonListsPage() {
         className="mb-3 inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 print:hidden"
       >
         <Icon name="back" className="h-4 w-4" />
-        القوائم
+        مكاتب
       </Link>
 
       <PageHeader
@@ -242,9 +245,12 @@ export default function PersonListsPage() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="num text-sm font-medium text-slate-800">
-                        قائمة رقم {l.listNumber}
+                      <p className="text-sm font-medium text-slate-800">
+                        {l.name || `قائمة رقم ${l.listNumber}`}
                       </p>
+                      {l.name && (
+                        <p className="num text-xs text-slate-500">قائمة رقم {l.listNumber}</p>
+                      )}
                       <p className="num text-xs text-slate-400">{formatDate(l.date)}</p>
                       {l.notes && (
                         <p className="mt-0.5 whitespace-pre-wrap break-words text-xs text-slate-500">
@@ -270,6 +276,7 @@ export default function PersonListsPage() {
               <table className="w-full text-right text-sm">
                 <thead className="bg-slate-50 text-xs text-slate-500">
                   <tr>
+                    <th className="px-4 py-2.5 font-medium">اسم القائمة</th>
                     <th className="px-4 py-2.5 font-medium">رقم القائمة</th>
                     <th className="px-4 py-2.5 font-medium">التاريخ</th>
                     <th className="px-4 py-2.5 font-medium">القيمة</th>
@@ -285,7 +292,10 @@ export default function PersonListsPage() {
                       {...openProps(setListDetails, l)}
                       className="cursor-pointer hover:bg-slate-50/70"
                     >
-                      <td className="num px-4 py-2.5 font-medium text-slate-800">{l.listNumber}</td>
+                      <td className="max-w-[12rem] truncate px-4 py-2.5 font-medium text-slate-800">
+                        {l.name || '—'}
+                      </td>
+                      <td className="num px-4 py-2.5 text-slate-500">{l.listNumber}</td>
                       <td className="num px-4 py-2.5 text-slate-500">{formatDate(l.date)}</td>
                       <td className="num px-4 py-2.5 text-slate-700">{formatMoney(l.value)}</td>
                       <td className="num px-4 py-2.5 font-semibold text-slate-800">
