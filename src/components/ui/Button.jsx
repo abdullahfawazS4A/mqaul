@@ -21,7 +21,8 @@ export default function Button({
   return (
     <button
       type={type}
-      className={`inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50 ${VARIANTS[variant]} ${SIZES[size]} ${className}`}
+      // الأزرار أدوات تحكّم لا محتوى، فلا تظهر في الورقة المطبوعة
+      className={`inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50 print:hidden ${VARIANTS[variant]} ${SIZES[size]} ${className}`}
       {...props}
     />
   )

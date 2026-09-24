@@ -130,7 +130,7 @@ export default function DebtsPage() {
               : `${people.length} مستخدم`
           }
           action={
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 print:hidden">
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}

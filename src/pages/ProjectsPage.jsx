@@ -47,7 +47,7 @@ export default function ProjectsPage() {
             <StatCard label="مجموع المصاريف" value={projectsTotals.expenses} tone="negative" />
           </div>
 
-          <div className="mb-4">
+          <div className="mb-4 print:hidden">
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}

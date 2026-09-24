@@ -24,7 +24,7 @@ function StatusBadge({ status, onClick }) {
       type="button"
       onClick={onClick}
       title="اضغط لتبديل الحالة"
-      className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors print:hidden ${
+      className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
         paid
           ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
           : 'bg-amber-50 text-amber-700 hover:bg-amber-100'

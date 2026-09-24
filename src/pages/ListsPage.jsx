@@ -141,7 +141,7 @@ export default function ListsPage() {
         }
       />
 
-      <div className="mb-4 flex gap-1.5 border-b border-slate-200">
+      <div className="mb-4 flex gap-1.5 border-b border-slate-200 print:hidden">
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -160,7 +160,7 @@ export default function ListsPage() {
 
       {tab === 'lists' ? (
         <>
-          <div className="mb-4 flex flex-wrap items-center gap-2">
+          <div className="mb-4 flex flex-wrap items-center gap-2 print:hidden">
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -239,7 +239,7 @@ export default function ListsPage() {
             />
           </div>
 
-          <div className="mb-4">
+          <div className="mb-4 print:hidden">
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
