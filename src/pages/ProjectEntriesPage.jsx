@@ -9,6 +9,7 @@ import EmptyState from '../components/ui/EmptyState.jsx'
 import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
 import Combobox from '../components/ui/Combobox.jsx'
 import Card from '../components/ui/Card.jsx'
+import { Input } from '../components/ui/Field.jsx'
 import { useToast } from '../components/ui/Toast.jsx'
 import ProjectSection from '../components/projects/ProjectSection.jsx'
 import ProjectEntryDetails from '../components/projects/ProjectEntryDetails.jsx'
@@ -35,6 +36,7 @@ export default function ProjectEntriesPage() {
   const [entryForm, setEntryForm] = useState(null) // { initial? }
   const [details, setDetails] = useState(null)
   const [confirm, setConfirm] = useState(null)
+  const [search, setSearch] = useState('')
 
   const project = getProject(projectId)
   const meta = KIND_META[kind]
@@ -68,6 +70,31 @@ export default function ProjectEntriesPage() {
   const items = (partner || project)[kind] || []
   const total = items.reduce((s, i) => s + Number(i.amount || 0), 0)
 
+  // البحث يشمل أعمدة القسم والمبلغ والتاريخ — بصيغته المعروضة وصيغته المخزّنة
+  const q = search.trim().toLowerCase()
+  const visible = q
+    ? items.filter((i) =>
+        [
+          ...meta.columns.map((c) => i[c.key]),
+          i.amount,
+          formatMoney(i.amount),
+          i.date,
+          formatDate(i.date),
+        ]
+          .join(' ')
+          .toLowerCase()
+          .includes(q),
+      )
+    : items
+  const visibleTotal = visible.reduce((s, i) => s + Number(i.amount || 0), 0)
+
+  const isFiltered = Boolean(q || partnerKey)
+
+  const clearFilters = () => {
+    setSearch('')
+    setParams({})
+  }
+
   const setPartner = (key) => {
     if (key) setParams({ partner: key })
     else setParams({})
@@ -84,7 +111,7 @@ export default function ProjectEntriesPage() {
   const exportXLSX = () => {
     const label = (t) => ({ v: t, s: S.LABEL })
     downloadXLSX(
-      items,
+      visible,
       [
         { key: 'amount', label: 'المبلغ' },
         ...meta.columns.map((c) => ({ key: c.key, label: c.label, width: 30 })),
@@ -96,7 +123,8 @@ export default function ProjectEntriesPage() {
         [{ v: 'الملخّص', s: S.BOLD }],
         [label('المشروع'), project.name],
         ...(partner ? [[label('الشريك'), partner.name]] : []),
-        [{ v: meta.totalLabel, s: S.BOLD }, { v: total, s: S.BOLD }, label(CURRENCY)],
+        ...(q ? [[label('بحث'), search.trim()]] : []),
+        [{ v: meta.totalLabel, s: S.BOLD }, { v: visibleTotal, s: S.BOLD }, label(CURRENCY)],
       ],
     )
   }
@@ -124,7 +152,7 @@ export default function ProjectEntriesPage() {
               variant="secondary"
               size="sm"
               onClick={exportXLSX}
-              disabled={items.length === 0}
+              disabled={visible.length === 0}
             >
               <Icon name="arrowDown" className="h-4 w-4" />
               تصدير Excel
@@ -152,13 +180,20 @@ export default function ProjectEntriesPage() {
         />
       </div>
 
-      {meta.partnerScoped && partnerOptions.length > 0 && (
-        <Card className="mb-4 p-3 sm:p-4 print:hidden">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-slate-500">
-              حصر الحركات على شريك أو جهة معيّنة داخل هذا القسم.
-            </p>
-            <div className="w-full sm:w-72">
+      <Card className="mb-4 p-3 sm:p-4 print:hidden">
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="block min-w-[12rem] flex-1">
+            <span className="mb-1 block text-xs font-medium text-slate-600">بحث</span>
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={`${meta.columns.map((c) => c.label).join(' أو ')} أو مبلغ أو تاريخ…`}
+            />
+          </label>
+
+          {meta.partnerScoped && partnerOptions.length > 0 && (
+            <label className="block w-full sm:w-64">
+              <span className="mb-1 block text-xs font-medium text-slate-600">الشريك</span>
               <Combobox
                 value={partnerKey}
                 onChange={setPartner}
@@ -166,23 +201,44 @@ export default function ProjectEntriesPage() {
                 placeholder="كل الحركات — اختر شريكًا…"
                 emptyText="لا يوجد اسم مطابق."
               />
-            </div>
-          </div>
-        </Card>
-      )}
+            </label>
+          )}
+
+          {isFiltered && (
+            <Button variant="ghost" onClick={clearFilters}>
+              إلغاء التصفية
+            </Button>
+          )}
+        </div>
+
+        {q && (
+          <p className="mt-3 border-t border-slate-100 pt-3 text-xs text-slate-500">
+            نتيجة البحث: <span className="num font-semibold">{visible.length}</span> من{' '}
+            <span className="num">{items.length}</span> — المجموع{' '}
+            <span className="num font-semibold text-slate-800">{formatMoney(visibleTotal)}</span>{' '}
+            {CURRENCY}
+          </p>
+        )}
+      </Card>
 
       <ProjectSection
         title="الحركات"
         subtitle={
-          partner
-            ? `${items.length} ${meta.word} لـ${partner.name}`
-            : `${items.length} ${meta.word}`
+          q
+            ? `${visible.length} من ${items.length} ${meta.word}`
+            : partner
+              ? `${items.length} ${meta.word} لـ${partner.name}`
+              : `${items.length} ${meta.word}`
         }
-        items={items}
+        items={visible}
         columns={meta.columns}
         amountTone={meta.amountTone}
         emptyText={
-          partner ? `لا توجد ${meta.plural} لهذا الشريك.` : `لا توجد ${meta.plural} بعد.`
+          q
+            ? 'لا توجد حركات مطابقة للبحث.'
+            : partner
+              ? `لا توجد ${meta.plural} لهذا الشريك.`
+              : `لا توجد ${meta.plural} بعد.`
         }
         onAdd={() => setEntryForm({})}
         onOpen={setDetails}
