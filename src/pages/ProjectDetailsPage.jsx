@@ -9,48 +9,10 @@ import EmptyState from '../components/ui/EmptyState.jsx'
 import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
 import Combobox from '../components/ui/Combobox.jsx'
 import { useToast } from '../components/ui/Toast.jsx'
-import ProjectSection from '../components/projects/ProjectSection.jsx'
-import ProjectEntryDetails from '../components/projects/ProjectEntryDetails.jsx'
-import ProjectEntryForm from '../components/projects/ProjectEntryForm.jsx'
 import ProjectForm from '../components/projects/ProjectForm.jsx'
+import { KIND_META, KIND_ORDER } from '../components/projects/kinds.js'
 import { CURRENCY, formatDate, formatMoney } from '../utils/format.js'
 import { downloadXLSX, stampedName } from '../utils/download.js'
-
-const KIND_LABELS = {
-  deposits: 'إيداع الشريك',
-  expenses: 'المصروف',
-  advances: 'السلفة',
-  payouts: 'التسليم للشريك',
-}
-
-/** أعمدة كل قسم ولونه — يستخدمها الجدول ونافذة التفاصيل معًا. */
-const KIND_META = {
-  deposits: {
-    label: KIND_LABELS.deposits,
-    tone: 'emerald',
-    columns: [{ key: 'partner', label: 'الشريك' }],
-  },
-  expenses: {
-    label: KIND_LABELS.expenses,
-    tone: 'red',
-    columns: [
-      { key: 'description', label: 'الوصف / السبب' },
-      { key: 'spender', label: 'من قام بالصرف' },
-    ],
-    noteKey: 'description',
-    noteLabel: 'الوصف / السبب',
-  },
-  advances: {
-    label: KIND_LABELS.advances,
-    tone: 'slate',
-    columns: [{ key: 'source', label: 'من جهة / شخص' }],
-  },
-  payouts: {
-    label: KIND_LABELS.payouts,
-    tone: 'amber',
-    columns: [{ key: 'partner', label: 'الشريك' }],
-  },
-}
 
 export default function ProjectDetailsPage() {
   const { projectId } = useParams()
@@ -58,9 +20,6 @@ export default function ProjectDetailsPage() {
   const {
     getProject,
     projectTotals,
-    addProjectItem,
-    updateProjectItem,
-    deleteProjectItem,
     updateProject,
     deleteProject,
     projectPartnerOptions,
@@ -68,10 +27,8 @@ export default function ProjectDetailsPage() {
   } = useProjects()
   const { notify } = useToast()
 
-  const [entryForm, setEntryForm] = useState(null) // { kind, initial? }
   const [editOpen, setEditOpen] = useState(false)
-  const [confirm, setConfirm] = useState(null) // { kind: 'item'|'project', itemKind?, item? }
-  const [entryDetails, setEntryDetails] = useState(null) // { kind, item }
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [partnerKey, setPartnerKey] = useState('') // '' = كل الحركات
 
   const project = getProject(projectId)
@@ -102,14 +59,6 @@ export default function ProjectDetailsPage() {
   }
 
   const totals = projectTotals(project)
-
-  const submitEntry = (kind, data) => {
-    const res = entryForm?.initial
-      ? updateProjectItem(project.id, kind, entryForm.initial.id, data)
-      : addProjectItem(project.id, kind, data)
-    if (res?.ok) notify(entryForm?.initial ? 'تم تعديل الحركة.' : 'تمت إضافة الحركة.')
-    return res
-  }
 
   const removeProject = () => {
     deleteProject(project.id)
@@ -144,18 +93,6 @@ export default function ProjectDetailsPage() {
   }
 
   const shown = partner || project
-  const countLabel = (arr, word) =>
-    partner ? `${arr.length} ${word} لـ${partner.name}` : `${arr.length} ${word}`
-  const emptyLabel = (word) =>
-    partner ? `لا توجد ${word} لهذا الشريك في المشروع.` : `لا توجد ${word} بعد.`
-
-  const sectionProps = (kind) => ({
-    columns: KIND_META[kind].columns,
-    onAdd: () => setEntryForm({ kind }),
-    onOpen: (item) => setEntryDetails({ kind, item }),
-    onEdit: (item) => setEntryForm({ kind, initial: item }),
-    onDelete: (item) => setConfirm({ kind: 'item', itemKind: kind, item }),
-  })
 
   return (
     <div>
@@ -183,7 +120,7 @@ export default function ProjectDetailsPage() {
               <Icon name="edit" className="h-4 w-4" />
               تعديل
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setConfirm({ kind: 'project' })}>
+            <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(true)}>
               <Icon name="trash" className="h-4 w-4" />
               حذف المشروع
             </Button>
@@ -281,11 +218,42 @@ export default function ProjectDetailsPage() {
         </div>
       )}
 
-      <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard label="مجموع الإيداعات" value={totals.deposits} tone="positive" />
-        <StatCard label="مجموع المصاريف" value={totals.expenses} tone="negative" />
-        <StatCard label="مجموع السلف" value={totals.advances} tone="neutral" />
-        <StatCard label="المسلَّم للشركاء" value={totals.payouts} tone="negative" />
+      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {KIND_ORDER.map((k) => {
+          const meta = KIND_META[k]
+          const items = shown[k] || []
+          const sum = items.reduce((acc, i) => acc + Number(i.amount || 0), 0)
+          return (
+            <Link
+              key={k}
+              to={`/projects/${project.id}/${k}${partnerKey ? `?partner=${encodeURIComponent(partnerKey)}` : ''}`}
+              className="group flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5 transition-colors hover:border-slate-300 hover:bg-slate-50"
+            >
+              <div className="min-w-0">
+                <p className="flex items-center gap-1.5 text-sm font-medium text-slate-800">
+                  <Icon name={meta.icon} className={`h-4 w-4 ${meta.amountTone}`} />
+                  {meta.title}
+                </p>
+                <p className="num mt-1 text-xs text-slate-400">
+                  {items.length} {meta.word}
+                  {partner ? ` لـ${partner.name}` : ''}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <span className={`num text-base font-semibold ${meta.amountTone}`}>
+                  {formatMoney(sum)}
+                </span>
+                <Icon
+                  name="back"
+                  className="h-4 w-4 rotate-180 text-slate-300 group-hover:text-slate-500"
+                />
+              </div>
+            </Link>
+          )
+        })}
+      </div>
+
+      <div className="mb-5">
         <StatCard
           label="المتبقي تحت اليد"
           value={totals.available}
@@ -293,69 +261,6 @@ export default function ProjectDetailsPage() {
           hint="(إيداعات + سلف) − (مصاريف + تسليمات)"
         />
       </div>
-
-      <div className="space-y-4">
-        <ProjectSection
-          title="إيداعات الشركاء"
-          subtitle={countLabel(shown.deposits, 'إيداع')}
-          items={shown.deposits}
-          amountTone="text-emerald-600"
-          emptyText={emptyLabel('إيداعات')}
-          {...sectionProps('deposits')}
-        />
-
-        <ProjectSection
-          title="المصاريف"
-          subtitle={countLabel(shown.expenses, 'مصروف')}
-          items={shown.expenses}
-          amountTone="text-red-600"
-          emptyText={emptyLabel('مصاريف')}
-          {...sectionProps('expenses')}
-        />
-
-        <ProjectSection
-          title="السلف المستلمة"
-          subtitle={countLabel(shown.advances, 'سلفة')}
-          items={shown.advances}
-          amountTone="text-slate-800"
-          emptyText={emptyLabel('سلف مستلمة')}
-          {...sectionProps('advances')}
-        />
-
-        <ProjectSection
-          title="التسليمات للشركاء"
-          subtitle={countLabel(shown.payouts, 'تسليم')}
-          items={shown.payouts}
-          amountTone="text-amber-600"
-          emptyText={emptyLabel('تسليمات')}
-          {...sectionProps('payouts')}
-        />
-      </div>
-
-      <ProjectEntryDetails
-        entry={entryDetails?.item}
-        meta={entryDetails ? KIND_META[entryDetails.kind] : null}
-        onClose={() => setEntryDetails(null)}
-        onEdit={(item) => {
-          const kind = entryDetails.kind
-          setEntryDetails(null)
-          setEntryForm({ kind, initial: item })
-        }}
-        onDelete={(item) => {
-          const kind = entryDetails.kind
-          setEntryDetails(null)
-          setConfirm({ kind: 'item', itemKind: kind, item })
-        }}
-      />
-
-      <ProjectEntryForm
-        open={entryForm !== null}
-        kind={entryForm?.kind}
-        initial={entryForm?.initial}
-        partners={project.partners}
-        onClose={() => setEntryForm(null)}
-        onSubmit={submitEntry}
-      />
 
       <ProjectForm
         open={editOpen}
@@ -368,28 +273,14 @@ export default function ProjectDetailsPage() {
       />
 
       <ConfirmDialog
-        open={confirm?.kind === 'item'}
-        message={`حذف ${KIND_LABELS[confirm?.itemKind] || 'الحركة'} بمبلغ ${formatMoney(
-          confirm?.item?.amount || 0,
-        )} ${CURRENCY}`}
-        details="ستتغيّر مجاميع المشروع بعد الحذف."
-        confirmLabel="حذف الحركة"
-        onConfirm={() => {
-          deleteProjectItem(project.id, confirm.itemKind, confirm.item.id)
-          notify('تم حذف الحركة.')
-        }}
-        onClose={() => setConfirm(null)}
-      />
-
-      <ConfirmDialog
-        open={confirm?.kind === 'project'}
+        open={confirmDelete}
         title="حذف المشروع"
         message={`حذف «${project.name}» وكل إيداعاته ومصاريفه وسلفه وتسليماته.`}
         details={`${project.deposits.length} إيداع، ${project.expenses.length} مصروف، ${project.advances.length} سلفة، ${project.payouts.length} تسليم.`}
         confirmPhrase={project.name}
         confirmLabel="حذف المشروع"
         onConfirm={removeProject}
-        onClose={() => setConfirm(null)}
+        onClose={() => setConfirmDelete(false)}
       />
     </div>
   )

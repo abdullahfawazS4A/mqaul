@@ -8,6 +8,7 @@ import ListsPage from './pages/ListsPage.jsx'
 import PersonListsPage from './pages/PersonListsPage.jsx'
 import ProjectsPage from './pages/ProjectsPage.jsx'
 import ProjectDetailsPage from './pages/ProjectDetailsPage.jsx'
+import ProjectEntriesPage from './pages/ProjectEntriesPage.jsx'
 import SettingsPage from './pages/SettingsPage.jsx'
 import NotFoundPage from './pages/NotFoundPage.jsx'
 
@@ -23,6 +24,7 @@ export default function App() {
         <Route path="/lists/:personId" element={<PersonListsPage />} />
         <Route path="/projects" element={<ProjectsPage />} />
         <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
+        <Route path="/projects/:projectId/:kind" element={<ProjectEntriesPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
