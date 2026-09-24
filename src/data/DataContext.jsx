@@ -15,6 +15,7 @@ import {
   seedPeople,
   seedDebtEntries,
   seedLists,
+  seedListReceipts,
   seedProjects,
 } from './mockData.js'
 import { clearState, loadState, saveState } from './storage.js'
@@ -33,6 +34,7 @@ const SEED = {
   people: seedPeople,
   debtEntries: seedDebtEntries,
   lists: seedLists,
+  listReceipts: seedListReceipts,
   projects: seedProjects,
 }
 
@@ -45,10 +47,16 @@ const withKinds = (p) => ({
   payouts: p.payouts || [],
 })
 
-/** الحالة المحفوظة إن وُجدت، وإلا البيانات الأولية. */
+/**
+ * الحالة المحفوظة إن وُجدت، وإلا البيانات الأولية.
+ * مفتاح غائب عن نسخة محفوظة يعني كيانًا أُضيف بعد حفظها، فيبدأ فارغًا —
+ * لا ببيانات نموذجية تُحقن في بيانات المستخدم الحقيقية فتغيّر أرقامه.
+ */
 const initial = (key) => {
   const saved = loadState()
-  return saved && saved[key] !== undefined ? saved[key] : SEED[key]
+  if (!saved) return SEED[key]
+  if (saved[key] !== undefined) return saved[key]
+  return Array.isArray(SEED[key]) ? [] : SEED[key]
 }
 
 export function DataProvider({ children }) {
@@ -57,13 +65,15 @@ export function DataProvider({ children }) {
   const [people, setPeople] = useState(() => initial('people'))
   const [debtEntries, setDebtEntries] = useState(() => initial('debtEntries'))
   const [lists, setLists] = useState(() => initial('lists'))
+  // سندات قبض القوائم — معزولة عن سندات قبض الديون النقدية
+  const [listReceipts, setListReceipts] = useState(() => initial('listReceipts'))
   const [projects, setProjects] = useState(() => initial('projects').map(withKinds))
 
   /* --------------------------- الحفظ التلقائي --------------------------- */
 
   useEffect(() => {
-    saveState({ treasury, capital, people, debtEntries, lists, projects })
-  }, [treasury, capital, people, debtEntries, lists, projects])
+    saveState({ treasury, capital, people, debtEntries, lists, listReceipts, projects })
+  }, [treasury, capital, people, debtEntries, lists, listReceipts, projects])
 
   /* ------------------------------ الصيرفة ------------------------------ */
 
@@ -340,6 +350,8 @@ export function DataProvider({ children }) {
               ...l,
               ...patch,
               listNumber: (patch.listNumber ?? l.listNumber).trim(),
+              // تاريخ فارغ في التعديل لا يمحو التاريخ المحفوظ
+              date: patch.date || l.date,
               value: num(patch.value ?? l.value),
               profit: num(patch.profit ?? l.profit),
             }
@@ -358,6 +370,50 @@ export function DataProvider({ children }) {
       ),
     )
 
+  /* ----------------------- سندات قبض القوائم ---------------------------- */
+
+  /**
+   * سند قبض على دين القوائم. معزول تمامًا عن سندات قبض الديون النقدية:
+   * لا يمسّ الصيرفة ولا رأس المال ولا رصيد الشخص في صفحة الديون.
+   * @returns {{ok: boolean, error?: string}}
+   */
+  const addListReceipt = ({ personId, amount, date, note }) => {
+    const value = num(amount)
+    if (!personId) return { ok: false, error: 'اختر الشخص أولًا.' }
+    if (value <= 0) return { ok: false, error: 'المبلغ يجب أن يكون أكبر من صفر.' }
+    setListReceipts((prev) => [
+      { id: uid('lr'), personId, amount: value, date: date || today(), note: note?.trim() || '' },
+      ...prev,
+    ])
+    return { ok: true }
+  }
+
+  /** @returns {{ok: boolean, error?: string}} */
+  const updateListReceipt = (id, patch) => {
+    const value = patch.amount === undefined ? undefined : num(patch.amount)
+    if (value !== undefined && value <= 0)
+      return { ok: false, error: 'المبلغ يجب أن يكون أكبر من صفر.' }
+    setListReceipts((prev) =>
+      prev.map((r) =>
+        r.id === id
+          ? {
+              ...r,
+              ...patch,
+              amount: value === undefined ? r.amount : value,
+              note: patch.note === undefined ? r.note : patch.note.trim(),
+            }
+          : r,
+      ),
+    )
+    return { ok: true }
+  }
+
+  const deleteListReceipt = (id) => setListReceipts((prev) => prev.filter((r) => r.id !== id))
+
+  /** سندات قبض قوائم شخص واحد — الأحدث أولًا. */
+  const listReceiptsOfPerson = (personId) =>
+    listReceipts.filter((r) => r.personId === personId).sort(byDateDesc)
+
   /* --------------------------- ديون القوائم ---------------------------- */
 
   /** قوائم شخص واحد. */
@@ -365,12 +421,19 @@ export function DataProvider({ children }) {
 
   /**
    * ملخّص لكل شخص له قوائم:
-   * debt = مجموع أرباح القوائم غير المقبوضة، collected = مجموع أرباح المقبوضة.
+   *   دين القوائم = أرباح القوائم غير المقبوضة − مجموع سندات قبض القوائم.
+   * سند القبض هو آلية التسديد؛ زر «واصل» يبقى لتعليم قائمة بكاملها.
+   * الدين لا ينزل تحت الصفر — الفائض يظهر في overpaid.
    */
   const listsDebtByPerson = useMemo(() => {
     const rows = people.map((person) => {
       const personLists = lists.filter((l) => l.personId === person.id)
       const unpaid = personLists.filter((l) => l.status === 'unpaid')
+      const unpaidProfit = unpaid.reduce((s, l) => s + num(l.profit), 0)
+      const receipts = listReceipts
+        .filter((r) => r.personId === person.id)
+        .reduce((s, r) => s + num(r.amount), 0)
+      const net = unpaidProfit - receipts
       return {
         id: person.id,
         name: person.name,
@@ -378,14 +441,18 @@ export function DataProvider({ children }) {
         listsCount: personLists.length,
         unpaidCount: unpaid.length,
         listsValue: personLists.reduce((s, l) => s + num(l.value), 0),
-        debt: unpaid.reduce((s, l) => s + num(l.profit), 0),
-        collected: personLists
-          .filter((l) => l.status === 'paid')
-          .reduce((s, l) => s + num(l.profit), 0),
+        unpaidProfit,
+        receipts,
+        debt: Math.max(net, 0),
+        overpaid: Math.max(-net, 0),
+        collected:
+          personLists
+            .filter((l) => l.status === 'paid')
+            .reduce((s, l) => s + num(l.profit), 0) + receipts,
       }
     })
-    return rows.filter((r) => r.listsCount > 0).sort((a, b) => b.debt - a.debt)
-  }, [people, lists])
+    return rows.filter((r) => r.listsCount > 0 || r.receipts > 0).sort((a, b) => b.debt - a.debt)
+  }, [people, lists, listReceipts])
 
   const listsTotals = useMemo(() => {
     const debt = listsDebtByPerson.reduce((s, r) => s + r.debt, 0)
@@ -575,7 +642,7 @@ export function DataProvider({ children }) {
   const exportSnapshot = () => ({
     version: 1,
     exportedAt: new Date().toISOString(),
-    data: { treasury, capital, people, debtEntries, lists, projects },
+    data: { treasury, capital, people, debtEntries, lists, listReceipts, projects },
   })
 
   /**
@@ -595,6 +662,8 @@ export function DataProvider({ children }) {
     setPeople(d.people)
     setDebtEntries(d.debtEntries)
     setLists(d.lists)
+    // النسخ المحفوظة قبل إضافة سندات القوائم لا تحتوي المفتاح
+    setListReceipts(Array.isArray(d.listReceipts) ? d.listReceipts : [])
     setProjects(d.projects.map(withKinds))
     return { ok: true }
   }
@@ -607,6 +676,7 @@ export function DataProvider({ children }) {
     setPeople(SEED.people)
     setDebtEntries(SEED.debtEntries)
     setLists(SEED.lists)
+    setListReceipts(SEED.listReceipts)
     setProjects(SEED.projects)
     return { ok: true }
   }
@@ -618,6 +688,7 @@ export function DataProvider({ children }) {
     setPeople([])
     setDebtEntries([])
     setLists([])
+    setListReceipts([])
     setProjects([])
     return { ok: true }
   }
@@ -627,6 +698,7 @@ export function DataProvider({ children }) {
     people: people.length,
     debtEntries: debtEntries.length,
     lists: lists.length,
+    listReceipts: listReceipts.length,
     projects: projects.length,
   }
 
@@ -661,6 +733,11 @@ export function DataProvider({ children }) {
     updateList,
     deleteList,
     toggleListStatus,
+    listReceipts,
+    addListReceipt,
+    updateListReceipt,
+    deleteListReceipt,
+    listReceiptsOfPerson,
     listsOfPerson,
     listsDebtByPerson,
     listsTotals,

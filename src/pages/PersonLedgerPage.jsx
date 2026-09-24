@@ -13,8 +13,10 @@ import { ErrorMessage, Input } from '../components/ui/Field.jsx'
 import { useToast } from '../components/ui/Toast.jsx'
 import PersonForm from '../components/debts/PersonForm.jsx'
 import DebtEntryForm from '../components/debts/DebtEntryForm.jsx'
+import DebtEntryDetails from '../components/debts/DebtEntryDetails.jsx'
 import { CURRENCY, formatDate, formatMoney } from '../utils/format.js'
-import { downloadCSV, stampedName } from '../utils/download.js'
+import { downloadXLSX, stampedName } from '../utils/download.js'
+import { S } from '../utils/xlsx.js'
 
 const FILTERS = [
   { key: 'all', label: 'الكل' },
@@ -55,6 +57,7 @@ export default function PersonLedgerPage() {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('all')
   const [entryForm, setEntryForm] = useState(null) // { kind, initial? }
+  const [details, setDetails] = useState(null)
   const [editPersonOpen, setEditPersonOpen] = useState(false)
   const [confirm, setConfirm] = useState(null) // { kind: 'entry' | 'person', entry? }
   const [error, setError] = useState('')
@@ -112,8 +115,39 @@ export default function PersonLedgerPage() {
     return res
   }
 
-  const exportCSV = () =>
-    downloadCSV(
+  /**
+   * ذيل الكشف: ملخّص الأرصدة ثم خانات التوقيع.
+   * المبالغ تُكتب أرقامًا لا نصًّا حتى تبقى قابلة للتحقق داخل Excel،
+   * والعناوين هي نفسها المعروضة في الصفحة حتى لا يختلف الفهم.
+   */
+  const statementFooter = () => {
+    const line = { v: '', s: S.LINE }
+    const label = (text) => ({ v: text, s: S.LABEL })
+    const balanceLabel =
+      person.balance < 0 ? 'رصيد له لدينا' : person.balance > 0 ? 'دين عليه' : 'الرصيد'
+
+    return [
+      [{ v: 'الملخّص', s: S.BOLD }],
+      ['مجموع ما أُعطي', totals.given, label(CURRENCY)],
+      ['مجموع ما استُلم', totals.received, label(CURRENCY)],
+      [
+        { v: balanceLabel, s: S.BOLD },
+        { v: Math.abs(person.balance), s: S.BOLD },
+        label(CURRENCY),
+      ],
+      [],
+      [{ v: 'إقرار استلام وتسليم', s: S.BOLD }],
+      [label('أقرّ بصحة الكشف أعلاه وباستلام/تسليم المبلغ المبيّن فيه.')],
+      [],
+      [{ v: 'المُسلِّم', s: S.BOLD }, null, { v: 'المُستلِم', s: S.BOLD }],
+      { cells: [label('الاسم'), line, label('الاسم'), line], height: 26 },
+      { cells: [label('التوقيع'), line, label('التوقيع'), line], height: 34 },
+      { cells: [label('التاريخ'), line, label('التاريخ'), line], height: 26 },
+    ]
+  }
+
+  const exportXLSX = () =>
+    downloadXLSX(
       entries,
       [
         { key: (e) => (e.type === 'debt' ? 'دين' : 'سند قبض'), label: 'النوع' },
@@ -121,7 +155,9 @@ export default function PersonLedgerPage() {
         { key: 'amount', label: 'المبلغ' },
         { key: 'note', label: 'ملاحظة' },
       ],
-      stampedName(`mqaul-ledger-${person.name}`, 'csv'),
+      stampedName(`mqaul-ledger-${person.name}`, 'xlsx'),
+      `كشف ${person.name}`,
+      statementFooter(),
     )
 
   const removePerson = () => {
@@ -135,8 +171,25 @@ export default function PersonLedgerPage() {
     }
   }
 
+  // فتح التفاصيل بالنقر على السطر — مع منع الأزرار من تشغيله.
+  const openProps = (e) => ({
+    role: 'button',
+    tabIndex: 0,
+    onClick: () => setDetails(e),
+    onKeyDown: (ev) => {
+      if (ev.key === 'Enter' || ev.key === ' ') {
+        ev.preventDefault()
+        setDetails(e)
+      }
+    },
+  })
+
   const rowActions = (e) => (
-    <div className="flex justify-end gap-1 print:hidden">
+    <div
+      className="flex justify-end gap-1 print:hidden"
+      onClick={(ev) => ev.stopPropagation()}
+      onKeyDown={(ev) => ev.stopPropagation()}
+    >
       <Button
         variant="ghost"
         size="sm"
@@ -174,11 +227,11 @@ export default function PersonLedgerPage() {
             <Button
               variant="secondary"
               size="sm"
-              onClick={exportCSV}
+              onClick={exportXLSX}
               disabled={entries.length === 0}
             >
               <Icon name="arrowDown" className="h-4 w-4" />
-              تصدير CSV
+              تصدير Excel
             </Button>
             <Button variant="secondary" size="sm" onClick={() => window.print()}>
               <Icon name="print" className="h-4 w-4" />
@@ -244,7 +297,7 @@ export default function PersonLedgerPage() {
       <Card className="overflow-hidden">
         <CardHeader
           title="سجل الحركات"
-          subtitle={`${visible.length} من ${entries.length} حركة`}
+          subtitle={`${visible.length} من ${entries.length} حركة — اضغط على أي حركة لعرض تفاصيلها`}
           action={
             <div className="flex flex-wrap items-center gap-2 print:hidden">
               <Input
@@ -280,7 +333,11 @@ export default function PersonLedgerPage() {
             {/* موبايل */}
             <ul className="divide-y divide-slate-100 md:hidden">
               {visible.map((e) => (
-                <li key={e.id} className="px-4 py-3">
+                <li
+                  key={e.id}
+                  {...openProps(e)}
+                  className="cursor-pointer px-4 py-3 transition-colors active:bg-slate-50"
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <TypeBadge type={e.type} />
@@ -315,7 +372,7 @@ export default function PersonLedgerPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {visible.map((e) => (
-                    <tr key={e.id} className="hover:bg-slate-50/70">
+                    <tr key={e.id} {...openProps(e)} className="cursor-pointer hover:bg-slate-50/70">
                       <td className="px-4 py-2.5">
                         <TypeBadge type={e.type} />
                       </td>
@@ -340,6 +397,20 @@ export default function PersonLedgerPage() {
           </>
         )}
       </Card>
+
+      <DebtEntryDetails
+        entry={details}
+        personName={person.name}
+        onClose={() => setDetails(null)}
+        onEdit={(entry) => {
+          setDetails(null)
+          setEntryForm({ kind: entry.type, initial: entry })
+        }}
+        onDelete={(entry) => {
+          setDetails(null)
+          setConfirm({ kind: 'entry', entry })
+        }}
+      />
 
       <DebtEntryForm
         open={entryForm !== null}

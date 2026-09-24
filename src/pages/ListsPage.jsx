@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useLists } from '../hooks/useLists.js'
 import PageHeader from '../components/ui/PageHeader.jsx'
 import StatCard from '../components/ui/StatCard.jsx'
@@ -11,9 +12,8 @@ import { Input } from '../components/ui/Field.jsx'
 import ListForm from '../components/lists/ListForm.jsx'
 import ListsTable from '../components/lists/ListsTable.jsx'
 import ListDebtsTable from '../components/lists/ListDebtsTable.jsx'
-import PersonListsModal from '../components/lists/PersonListsModal.jsx'
 import { CURRENCY, formatMoney } from '../utils/format.js'
-import { downloadCSV, stampedName } from '../utils/download.js'
+import { downloadXLSX, stampedName } from '../utils/download.js'
 
 const TABS = [
   { key: 'lists', label: 'القوائم' },
@@ -34,18 +34,17 @@ export default function ListsPage() {
     deleteList,
     toggleListStatus,
     people,
-    listsOfPerson,
     listsDebtByPerson,
     listsTotals,
   } = useLists()
   const { notify } = useToast()
+  const navigate = useNavigate()
 
   const [tab, setTab] = useState('lists')
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState(null)
-  const [detailsPerson, setDetailsPerson] = useState(null)
   const [confirmList, setConfirmList] = useState(null)
 
   const visible = useMemo(() => {
@@ -90,7 +89,7 @@ export default function ListsPage() {
   }
 
   const exportLists = () =>
-    downloadCSV(
+    downloadXLSX(
       visible,
       [
         { key: 'personName', label: 'اسم الشخص' },
@@ -101,11 +100,12 @@ export default function ListsPage() {
         { key: (l) => (l.status === 'paid' ? 'واصل' : 'دين'), label: 'الحالة' },
         { key: 'notes', label: 'ملاحظات' },
       ],
-      stampedName('mqaul-lists', 'csv'),
+      stampedName('mqaul-lists', 'xlsx'),
+      'القوائم',
     )
 
   const exportDebts = () =>
-    downloadCSV(
+    downloadXLSX(
       debtRows,
       [
         { key: 'name', label: 'اسم الشخص' },
@@ -114,9 +114,11 @@ export default function ListsPage() {
         { key: 'unpaidCount', label: 'غير مقبوضة' },
         { key: 'listsValue', label: 'قيمة القوائم' },
         { key: 'collected', label: 'الربح المقبوض' },
+        { key: 'receipts', label: 'سندات القبض' },
         { key: 'debt', label: 'دين القوائم' },
       ],
-      stampedName('mqaul-list-debts', 'csv'),
+      stampedName('mqaul-list-debts', 'xlsx'),
+      'ديون القوائم',
     )
 
   return (
@@ -194,7 +196,7 @@ export default function ListsPage() {
                   disabled={visible.length === 0}
                 >
                   <Icon name="arrowDown" className="h-4 w-4" />
-                  تصدير CSV
+                  تصدير Excel
                 </Button>
               }
             />
@@ -219,7 +221,7 @@ export default function ListsPage() {
               label="الأرباح المقبوضة"
               value={listsTotals.collected}
               tone="positive"
-              hint="قوائم بحالة واصل"
+              hint="قوائم واصلة + سندات القبض"
             />
             <StatCard
               label="أشخاص عليهم دين قوائم"
@@ -241,7 +243,7 @@ export default function ListsPage() {
           <Card className="overflow-hidden">
             <CardHeader
               title="ديون القوائم حسب الشخص"
-              subtitle={`${debtRows.length} شخص لديه قوائم`}
+              subtitle={`${debtRows.length} شخص — اضغط على أي شخص لعرض سجل قوائمه`}
               action={
                 <Button
                   variant="secondary"
@@ -250,11 +252,11 @@ export default function ListsPage() {
                   disabled={debtRows.length === 0}
                 >
                   <Icon name="arrowDown" className="h-4 w-4" />
-                  تصدير CSV
+                  تصدير Excel
                 </Button>
               }
             />
-            <ListDebtsTable rows={debtRows} onShowLists={setDetailsPerson} />
+            <ListDebtsTable rows={debtRows} onShowLists={(r) => navigate(`/lists/${r.id}`)} />
           </Card>
         </>
       )}
@@ -265,14 +267,6 @@ export default function ListsPage() {
         people={people}
         onClose={() => setFormOpen(false)}
         onSubmit={submit}
-      />
-
-      <PersonListsModal
-        open={detailsPerson !== null}
-        person={detailsPerson}
-        lists={detailsPerson ? listsOfPerson(detailsPerson.id) : []}
-        onClose={() => setDetailsPerson(null)}
-        onToggleStatus={toggleListStatus}
       />
 
       <ConfirmDialog

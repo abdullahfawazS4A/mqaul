@@ -1,19 +1,34 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import useVisualViewport from '../../hooks/useVisualViewport.js'
+
+/** النوافذ المفتوحة بالترتيب — نافذة قد تفتح فوق أخرى (سجل ← سند قبض). */
+const stack = []
 
 export default function Modal({ open, title, onClose, children, footer }) {
   const viewport = useVisualViewport(open)
 
+  // مرجع ثابت حتى لا تُعاد تهيئة المكدّس مع كل إعادة رسم للأب
+  const closeRef = useRef(onClose)
+  closeRef.current = onClose
+
   useEffect(() => {
     if (!open) return
-    const onKey = (e) => e.key === 'Escape' && onClose?.()
+    const token = {}
+    stack.push(token)
+    // Escape يغلق النافذة العليا وحدها، لا كل النوافذ المتداخلة
+    const onKey = (e) => {
+      if (e.key === 'Escape' && stack[stack.length - 1] === token) closeRef.current?.()
+    }
     document.addEventListener('keydown', onKey)
     document.body.style.overflow = 'hidden'
     return () => {
       document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = ''
+      const i = stack.indexOf(token)
+      if (i > -1) stack.splice(i, 1)
+      // التمرير لا يعود إلا بعد إغلاق آخر نافذة
+      if (stack.length === 0) document.body.style.overflow = ''
     }
-  }, [open, onClose])
+  }, [open])
 
   // عند ظهور لوحة المفاتيح: مرِّر الحقل الذي يكتب فيه المستخدم إلى داخل المساحة المتبقية
   useEffect(() => {

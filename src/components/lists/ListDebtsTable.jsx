@@ -4,18 +4,35 @@ import { formatMoney } from '../../utils/format.js'
 
 /**
  * ديون القوائم لكل شخص.
- * الدين = مجموع أرباح القوائم غير المقبوضة لذلك الشخص.
+ * الدين = أرباح القوائم غير المقبوضة − سندات قبض القوائم.
  */
 export default function ListDebtsTable({ rows, onShowLists }) {
   if (rows.length === 0)
     return <EmptyState text="لا توجد قوائم مسجّلة لأي شخص بعد." />
+
+  // فتح سجل القوائم بالنقر على السطر — مع منع الأزرار من تشغيله.
+  const openProps = (r) => ({
+    role: 'button',
+    tabIndex: 0,
+    onClick: () => onShowLists(r),
+    onKeyDown: (ev) => {
+      if (ev.key === 'Enter' || ev.key === ' ') {
+        ev.preventDefault()
+        onShowLists(r)
+      }
+    },
+  })
 
   return (
     <>
       {/* موبايل */}
       <ul className="divide-y divide-slate-100 md:hidden">
         {rows.map((r) => (
-          <li key={r.id} className="px-4 py-3">
+          <li
+            key={r.id}
+            {...openProps(r)}
+            className="cursor-pointer px-4 py-3 transition-colors active:bg-slate-50"
+          >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-slate-800">{r.name}</p>
@@ -33,10 +50,11 @@ export default function ListDebtsTable({ rows, onShowLists }) {
             </div>
             <div className="mt-2 flex items-center justify-between">
               <span className="text-xs text-slate-500">
-                المقبوض: <span className="num font-semibold text-emerald-600">{formatMoney(r.collected)}</span>
+                سندات القبض:{' '}
+                <span className="num font-semibold text-emerald-600">{formatMoney(r.receipts)}</span>
               </span>
               <Button size="sm" variant="ghost" onClick={() => onShowLists(r)}>
-                قوائمه
+                سجله
               </Button>
             </div>
           </li>
@@ -53,21 +71,21 @@ export default function ListDebtsTable({ rows, onShowLists }) {
               <th className="px-4 py-2.5 font-medium">عدد القوائم</th>
               <th className="px-4 py-2.5 font-medium">قوائم غير مقبوضة</th>
               <th className="px-4 py-2.5 font-medium">قيمة القوائم</th>
-              <th className="px-4 py-2.5 font-medium">الربح المقبوض</th>
+              <th className="px-4 py-2.5 font-medium">سندات القبض</th>
               <th className="px-4 py-2.5 font-medium">دين القوائم</th>
               <th className="px-4 py-2.5" />
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {rows.map((r) => (
-              <tr key={r.id} className="hover:bg-slate-50/70">
+              <tr key={r.id} {...openProps(r)} className="cursor-pointer hover:bg-slate-50/70">
                 <td className="px-4 py-2.5 font-medium text-slate-800">{r.name}</td>
                 <td className="num px-4 py-2.5 text-slate-500">{r.phone || '—'}</td>
                 <td className="num px-4 py-2.5 text-slate-500">{r.listsCount}</td>
                 <td className="num px-4 py-2.5 text-slate-500">{r.unpaidCount}</td>
                 <td className="num px-4 py-2.5 text-slate-700">{formatMoney(r.listsValue)}</td>
                 <td className="num px-4 py-2.5 font-medium text-emerald-600">
-                  {formatMoney(r.collected)}
+                  {formatMoney(r.receipts)}
                 </td>
                 <td
                   className={`num px-4 py-2.5 font-semibold ${
@@ -76,9 +94,13 @@ export default function ListDebtsTable({ rows, onShowLists }) {
                 >
                   {formatMoney(r.debt)}
                 </td>
-                <td className="px-4 py-2.5 text-left">
+                <td
+                  className="px-4 py-2.5 text-left"
+                  onClick={(ev) => ev.stopPropagation()}
+                  onKeyDown={(ev) => ev.stopPropagation()}
+                >
                   <Button size="sm" variant="ghost" onClick={() => onShowLists(r)}>
-                    قوائمه
+                    سجله
                   </Button>
                 </td>
               </tr>

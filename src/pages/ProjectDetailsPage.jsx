@@ -13,7 +13,7 @@ import ProjectSection from '../components/projects/ProjectSection.jsx'
 import ProjectEntryForm from '../components/projects/ProjectEntryForm.jsx'
 import ProjectForm from '../components/projects/ProjectForm.jsx'
 import { CURRENCY, formatDate, formatMoney } from '../utils/format.js'
-import { downloadCSV, stampedName } from '../utils/download.js'
+import { downloadXLSX, stampedName } from '../utils/download.js'
 
 const KIND_LABELS = {
   deposits: 'إيداع الشريك',
@@ -98,7 +98,7 @@ export default function ProjectDetailsPage() {
       ...project.payouts.map((i) => ({ ...i, kind: 'تسليم لشريك', who: i.partner, note: '' })),
     ].sort((a, b) => (a.date < b.date ? 1 : -1))
 
-    downloadCSV(
+    downloadXLSX(
       rows,
       [
         { key: 'kind', label: 'النوع' },
@@ -107,7 +107,8 @@ export default function ProjectDetailsPage() {
         { key: 'note', label: 'الوصف' },
         { key: (r) => formatDate(r.date), label: 'التاريخ' },
       ],
-      stampedName(`mqaul-project-${project.name}`, 'csv'),
+      stampedName(`mqaul-project-${project.name}`, 'xlsx'),
+      project.name,
     )
   }
 
@@ -140,7 +141,7 @@ export default function ProjectDetailsPage() {
           <>
             <Button variant="secondary" size="sm" onClick={exportProject}>
               <Icon name="arrowDown" className="h-4 w-4" />
-              تصدير CSV
+              تصدير Excel
             </Button>
             <Button variant="secondary" size="sm" onClick={() => window.print()}>
               طباعة

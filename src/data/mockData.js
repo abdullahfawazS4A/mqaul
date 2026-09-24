@@ -33,6 +33,11 @@ export const seedLists = [
   { id: 'l4', personId: 'p1', listNumber: '1027', date: '2026-08-27', notes: 'قائمة سيراميك', value: 23000000, profit: 3100000, status: 'unpaid' },
 ]
 
+// سندات قبض القوائم — تُنقِص دين القوائم، بلا أي أثر على الصيرفة أو رأس المال
+export const seedListReceipts = [
+  { id: 'lr1', personId: 'p2', amount: 2000000, date: '2026-09-02', note: 'دفعة أولى من ربح قائمة الحديد' },
+]
+
 export const seedProjects = [
   {
     id: 'pr1',

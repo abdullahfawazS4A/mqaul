@@ -11,8 +11,9 @@ import { Input } from '../components/ui/Field.jsx'
 import DateRangePicker from '../components/ui/DateRangePicker.jsx'
 import TreasuryForm from '../components/treasury/TreasuryForm.jsx'
 import TreasuryTable from '../components/treasury/TreasuryTable.jsx'
+import TreasuryDetails from '../components/treasury/TreasuryDetails.jsx'
 import { CURRENCY, formatDate, formatMoney } from '../utils/format.js'
-import { downloadCSV, stampedName } from '../utils/download.js'
+import { downloadXLSX, stampedName } from '../utils/download.js'
 
 const FILTERS = [
   { key: 'all', label: 'الكل' },
@@ -26,6 +27,7 @@ export default function TreasuryPage() {
   const { notify } = useToast()
 
   const [form, setForm] = useState(null) // { type, initial? }
+  const [details, setDetails] = useState(null)
   const [confirmEntry, setConfirmEntry] = useState(null)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('all')
@@ -64,8 +66,8 @@ export default function TreasuryPage() {
     return res
   }
 
-  const exportCSV = () =>
-    downloadCSV(
+  const exportXLSX = () =>
+    downloadXLSX(
       visible,
       [
         { key: (e) => (e.type === 'in' ? 'إيداع' : 'استلام'), label: 'النوع' },
@@ -73,7 +75,8 @@ export default function TreasuryPage() {
         { key: (e) => formatDate(e.date), label: 'التاريخ' },
         { key: 'note', label: 'الملاحظة' },
       ],
-      stampedName('mqaul-treasury', 'csv'),
+      stampedName('mqaul-treasury', 'xlsx'),
+      'الصيرفة',
     )
 
   return (
@@ -177,23 +180,37 @@ export default function TreasuryPage() {
           title="العمليات"
           subtitle={
             isFiltered
-              ? `${visible.length} من ${entries.length} عملية`
-              : 'مرتّبة من الأحدث إلى الأقدم'
+              ? `${visible.length} من ${entries.length} عملية — اضغط على أي عملية لعرض تفاصيلها`
+              : 'مرتّبة من الأحدث إلى الأقدم — اضغط على أي عملية لعرض تفاصيلها'
           }
           action={
-            <Button variant="secondary" size="sm" onClick={exportCSV} disabled={visible.length === 0}>
+            <Button variant="secondary" size="sm" onClick={exportXLSX} disabled={visible.length === 0}>
               <Icon name="arrowDown" className="h-4 w-4" />
-              تصدير CSV
+              تصدير Excel
             </Button>
           }
         />
         <TreasuryTable
           entries={visible}
           emptyText={isFiltered ? 'لا توجد عمليات مطابقة.' : undefined}
+          onOpen={setDetails}
           onEdit={(entry) => setForm({ type: entry.type, initial: entry })}
           onDelete={setConfirmEntry}
         />
       </Card>
+
+      <TreasuryDetails
+        entry={details}
+        onClose={() => setDetails(null)}
+        onEdit={(entry) => {
+          setDetails(null)
+          setForm({ type: entry.type, initial: entry })
+        }}
+        onDelete={(entry) => {
+          setDetails(null)
+          setConfirmEntry(entry)
+        }}
+      />
 
       <TreasuryForm
         open={form !== null}

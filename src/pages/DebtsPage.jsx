@@ -12,7 +12,7 @@ import CapitalCard from '../components/debts/CapitalCard.jsx'
 import PeopleTable from '../components/debts/PeopleTable.jsx'
 import PersonForm from '../components/debts/PersonForm.jsx'
 import DebtEntryForm from '../components/debts/DebtEntryForm.jsx'
-import { downloadCSV, stampedName } from '../utils/download.js'
+import { downloadXLSX, stampedName } from '../utils/download.js'
 
 const SORTS = [
   { key: 'debt', label: 'الأكثر دينًا' },
@@ -70,8 +70,8 @@ export default function DebtsPage() {
     return res
   }
 
-  const exportCSV = () =>
-    downloadCSV(
+  const exportXLSX = () =>
+    downloadXLSX(
       visible,
       [
         { key: 'name', label: 'الاسم' },
@@ -80,7 +80,8 @@ export default function DebtsPage() {
         { key: (p) => (p.balance < 0 ? -p.balance : 0), label: 'له لدينا' },
         { key: 'notes', label: 'ملاحظات' },
       ],
-      stampedName('mqaul-debts', 'csv'),
+      stampedName('mqaul-debts', 'xlsx'),
+      'الديون',
     )
 
   return (
@@ -153,11 +154,11 @@ export default function DebtsPage() {
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={exportCSV}
+                onClick={exportXLSX}
                 disabled={visible.length === 0}
               >
                 <Icon name="arrowDown" className="h-4 w-4" />
-                تصدير CSV
+                تصدير Excel
               </Button>
             </div>
           }

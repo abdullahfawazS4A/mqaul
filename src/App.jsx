@@ -5,6 +5,7 @@ import TreasuryPage from './pages/TreasuryPage.jsx'
 import DebtsPage from './pages/DebtsPage.jsx'
 import PersonLedgerPage from './pages/PersonLedgerPage.jsx'
 import ListsPage from './pages/ListsPage.jsx'
+import PersonListsPage from './pages/PersonListsPage.jsx'
 import ProjectsPage from './pages/ProjectsPage.jsx'
 import ProjectDetailsPage from './pages/ProjectDetailsPage.jsx'
 import SettingsPage from './pages/SettingsPage.jsx'
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/debts" element={<DebtsPage />} />
         <Route path="/debts/:personId" element={<PersonLedgerPage />} />
         <Route path="/lists" element={<ListsPage />} />
+        <Route path="/lists/:personId" element={<PersonListsPage />} />
         <Route path="/projects" element={<ProjectsPage />} />
         <Route path="/projects/:projectId" element={<ProjectDetailsPage />} />
         <Route path="/settings" element={<SettingsPage />} />

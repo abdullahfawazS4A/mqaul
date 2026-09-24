@@ -17,12 +17,29 @@ function TypeBadge({ type }) {
   )
 }
 
-export default function TreasuryTable({ entries, onEdit, onDelete, emptyText }) {
+export default function TreasuryTable({ entries, onOpen, onEdit, onDelete, emptyText }) {
   if (entries.length === 0)
     return <EmptyState text={emptyText || 'لا توجد عمليات مسجّلة بعد.'} />
 
+  // فتح التفاصيل بالنقر على السطر — مع منع الأزرار من تشغيله.
+  const openProps = (e) => ({
+    role: 'button',
+    tabIndex: 0,
+    onClick: () => onOpen?.(e),
+    onKeyDown: (ev) => {
+      if (ev.key === 'Enter' || ev.key === ' ') {
+        ev.preventDefault()
+        onOpen?.(e)
+      }
+    },
+  })
+
   const actions = (e) => (
-    <div className="flex justify-end gap-1 print:hidden">
+    <div
+      className="flex justify-end gap-1 print:hidden"
+      onClick={(ev) => ev.stopPropagation()}
+      onKeyDown={(ev) => ev.stopPropagation()}
+    >
       <Button variant="ghost" size="sm" onClick={() => onEdit(e)} aria-label="تعديل">
         <Icon name="edit" className="h-4 w-4" />
       </Button>
@@ -37,7 +54,11 @@ export default function TreasuryTable({ entries, onEdit, onDelete, emptyText }) 
       {/* موبايل: بطاقات */}
       <ul className="divide-y divide-slate-100 sm:hidden">
         {entries.map((e) => (
-          <li key={e.id} className="flex items-start justify-between gap-3 px-4 py-3">
+          <li
+            key={e.id}
+            {...openProps(e)}
+            className="flex cursor-pointer items-start justify-between gap-3 px-4 py-3 transition-colors active:bg-slate-50"
+          >
             <div className="min-w-0">
               <TypeBadge type={e.type} />
               <p className="mt-1 truncate text-sm text-slate-700">{e.note || '—'}</p>
@@ -72,7 +93,7 @@ export default function TreasuryTable({ entries, onEdit, onDelete, emptyText }) 
           </thead>
           <tbody className="divide-y divide-slate-100">
             {entries.map((e) => (
-              <tr key={e.id} className="hover:bg-slate-50/70">
+              <tr key={e.id} {...openProps(e)} className="cursor-pointer hover:bg-slate-50/70">
                 <td className="px-4 py-2.5">
                   <TypeBadge type={e.type} />
                 </td>

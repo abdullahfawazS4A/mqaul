@@ -1,4 +1,6 @@
-/** تنزيل الملفات من المتصفح: نسخة احتياطية JSON أو جدول CSV. */
+/** تنزيل الملفات من المتصفح: نسخة احتياطية JSON أو جدول Excel. */
+
+import { buildXLSX } from './xlsx.js'
 
 function triggerDownload(blob, filename) {
   const url = URL.createObjectURL(blob)
@@ -19,30 +21,16 @@ export function downloadJSON(data, filename) {
 }
 
 /**
- * تصدير جدول إلى CSV.
- * columns: [{ key, label }] — والقيم تُقرأ عبر row[key] أو دالة key(row).
- * يُضاف BOM ليفتح Excel العربية بترميز صحيح.
+ * تصدير جدول إلى ملف Excel (.xlsx).
+ * columns: [{ key, label, width? }] — والقيم تُقرأ عبر row[key] أو دالة key(row).
+ * اخترنا xlsx بدل CSV لأن الجوال لا يملك عارضًا لملفات csv، بينما xlsx
+ * يفتحه Excel أو Google Sheets مباشرة.
  */
-export function downloadCSV(rows, columns, filename) {
-  const escape = (v) => {
-    const s = v === null || v === undefined ? '' : String(v)
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
-  }
-  const header = columns.map((c) => escape(c.label)).join(',')
-  const body = rows
-    .map((row) =>
-      columns
-        .map((c) => escape(typeof c.key === 'function' ? c.key(row) : row[c.key]))
-        .join(','),
-    )
-    .join('\n')
-  triggerDownload(
-    new Blob([`﻿${header}\n${body}`], { type: 'text/csv;charset=utf-8' }),
-    filename,
-  )
+export function downloadXLSX(rows, columns, filename, sheetName, footer) {
+  triggerDownload(buildXLSX(rows, columns, sheetName, footer), filename)
 }
 
-/** اسم ملف بتاريخ اليوم: mqaul-debts-2026-09-11.csv */
+/** اسم ملف بتاريخ اليوم: mqaul-debts-2026-09-11.xlsx */
 export function stampedName(base, ext) {
   return `${base}-${new Date().toISOString().slice(0, 10)}.${ext}`
 }

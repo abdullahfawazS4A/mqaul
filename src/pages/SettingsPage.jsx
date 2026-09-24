@@ -13,6 +13,7 @@ const COUNT_LABELS = {
   people: 'الأشخاص',
   debtEntries: 'حركات الديون',
   lists: 'القوائم',
+  listReceipts: 'سندات قبض القوائم',
   projects: 'المشاريع',
 }
 
