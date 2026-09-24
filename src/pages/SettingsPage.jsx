@@ -15,6 +15,8 @@ const COUNT_LABELS = {
   lists: 'القوائم',
   listReceipts: 'سندات قبض القوائم',
   projects: 'المشاريع',
+  properties: 'العقارات',
+  partnerEntries: 'قيود الشريكين',
 }
 
 /** النسخ الاحتياطي وإدارة البيانات المحفوظة في المتصفح. */
@@ -70,7 +72,7 @@ export default function SettingsPage() {
         <Card>
           <CardHeader
             title="تصدير نسخة احتياطية"
-            subtitle="ملف JSON يحتوي كل البيانات — احفظه في مكان آمن."
+            subtitle="ملف JSON يحتوي كل البيانات — احفظه في مكان آمن. مستندات العقارات (الصور وملفات PDF) تبقى في المتصفح ولا تُضمَّن في هذا الملف."
           />
           <div className="px-4 py-4 sm:px-5">
             <Button onClick={doExport}>
@@ -133,7 +135,7 @@ export default function SettingsPage() {
       <ConfirmDialog
         open={confirm === 'clear'}
         title="مسح كل البيانات"
-        message="سيتم حذف كل العمليات والأشخاص والقوائم والمشاريع نهائيًا."
+        message="سيتم حذف كل العمليات والأشخاص والقوائم والمشاريع والعقارات ومستنداتها نهائيًا."
         confirmPhrase="مسح"
         confirmLabel="مسح كل شيء"
         onConfirm={() => {

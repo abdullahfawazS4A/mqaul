@@ -17,8 +17,12 @@ import {
   seedLists,
   seedListReceipts,
   seedProjects,
+  seedProperties,
+  seedPartnerEntries,
+  PARTNER_NAMES,
 } from './mockData.js'
 import { clearState, loadState, saveState } from './storage.js'
+import { deleteFile, deleteFiles, pruneFiles, putFile } from './files.js'
 import { todayISO } from '../utils/format.js'
 
 const DataContext = createContext(null)
@@ -36,7 +40,12 @@ const SEED = {
   lists: seedLists,
   listReceipts: seedListReceipts,
   projects: seedProjects,
+  properties: seedProperties,
+  partnerEntries: seedPartnerEntries,
 }
+
+/** يضمن وجود مصفوفة المستندات — لعقارات حُفظت قبل إضافتها. */
+const withDocs = (p) => ({ ...p, partners: p.partners || [], documents: p.documents || [] })
 
 /** يضمن وجود كل مصفوفات الحركات — لمشاريع حُفظت قبل إضافة نوع جديد. */
 const withKinds = (p) => ({
@@ -68,12 +77,26 @@ export function DataProvider({ children }) {
   // سندات قبض القوائم — معزولة عن سندات قبض الديون النقدية
   const [listReceipts, setListReceipts] = useState(() => initial('listReceipts'))
   const [projects, setProjects] = useState(() => initial('projects').map(withKinds))
+  // العقارات — مستنداتها الوصفية هنا، ومحتوى الملفات في IndexedDB
+  const [properties, setProperties] = useState(() => initial('properties').map(withDocs))
+  // حساب وعد وحسين — معزول عن الصيرفة ورأس المال وصفحة الديون
+  const [partnerEntries, setPartnerEntries] = useState(() => initial('partnerEntries'))
 
   /* --------------------------- الحفظ التلقائي --------------------------- */
 
   useEffect(() => {
-    saveState({ treasury, capital, people, debtEntries, lists, listReceipts, projects })
-  }, [treasury, capital, people, debtEntries, lists, listReceipts, projects])
+    saveState({
+      treasury,
+      capital,
+      people,
+      debtEntries,
+      lists,
+      listReceipts,
+      projects,
+      properties,
+      partnerEntries,
+    })
+  }, [treasury, capital, people, debtEntries, lists, listReceipts, projects, properties, partnerEntries])
 
   /* ------------------------------ الصيرفة ------------------------------ */
 
@@ -639,13 +662,211 @@ export function DataProvider({ children }) {
     }
   }
 
+  /* ------------------------------ العقارات ----------------------------- */
+
+  const getProperty = (id) => properties.find((p) => p.id === id) || null
+
+  /** @returns {{ok: boolean, error?: string, item?: object}} */
+  const addProperty = (data) => {
+    if (!data.name?.trim()) return { ok: false, error: 'اسم العقار مطلوب.' }
+    const sold = data.status === 'sold'
+    const item = {
+      id: uid('rp'),
+      name: data.name.trim(),
+      type: data.type?.trim() || '',
+      partners: (data.partners || []).map((x) => String(x).trim()).filter(Boolean),
+      purchasePrice: num(data.purchasePrice),
+      purchaseDate: data.purchaseDate || today(),
+      salePrice: sold ? num(data.salePrice) : 0,
+      saleDate: sold ? data.saleDate || today() : '',
+      status: sold ? 'sold' : 'owned',
+      notes: data.notes?.trim() || '',
+      documents: [],
+    }
+    setProperties((prev) => [item, ...prev])
+    return { ok: true, item }
+  }
+
+  /** @returns {{ok: boolean, error?: string}} */
+  const updateProperty = (id, patch) => {
+    if (patch.name !== undefined && !patch.name.trim())
+      return { ok: false, error: 'اسم العقار مطلوب.' }
+    setProperties((prev) =>
+      prev.map((p) => {
+        if (p.id !== id) return p
+        const status = patch.status === undefined ? p.status : patch.status
+        const sold = status === 'sold'
+        return {
+          ...p,
+          ...patch,
+          name: (patch.name ?? p.name).trim(),
+          partners:
+            patch.partners === undefined
+              ? p.partners
+              : patch.partners.map((x) => String(x).trim()).filter(Boolean),
+          purchasePrice: num(patch.purchasePrice ?? p.purchasePrice),
+          purchaseDate: patch.purchaseDate || p.purchaseDate,
+          // بيع مُلغى يمسح سعر البيع وتاريخه حتى لا يبقى رقم معلّق
+          salePrice: sold ? num(patch.salePrice ?? p.salePrice) : 0,
+          saleDate: sold ? patch.saleDate || p.saleDate || today() : '',
+          status: sold ? 'sold' : 'owned',
+          documents: p.documents,
+        }
+      }),
+    )
+    return { ok: true }
+  }
+
+  /** حذف عقار ومستنداته من خزانة الملفات معًا. */
+  const deleteProperty = (id) => {
+    const target = properties.find((p) => p.id === id)
+    setProperties((prev) => prev.filter((p) => p.id !== id))
+    if (target) deleteFiles(target.documents.map((d) => d.id)).catch(() => {})
+    return { ok: true }
+  }
+
+  /**
+   * تسجيل مستند: الملف يُحفظ في IndexedDB، وبياناته الوصفية مع العقار.
+   * @returns {Promise<{ok: boolean, error?: string}>}
+   */
+  const addPropertyDocument = async (propertyId, file) => {
+    if (!file) return { ok: false, error: 'لم يُختَر ملف.' }
+    const docId = uid('doc')
+    try {
+      await putFile(docId, file)
+    } catch {
+      return { ok: false, error: 'تعذّر حفظ الملف في هذا المتصفح.' }
+    }
+    const meta = {
+      id: docId,
+      name: file.name || 'مستند',
+      mime: file.type || '',
+      size: file.size || 0,
+      addedAt: new Date().toISOString(),
+    }
+    setProperties((prev) =>
+      prev.map((p) => (p.id === propertyId ? { ...p, documents: [...p.documents, meta] } : p)),
+    )
+    return { ok: true, document: meta }
+  }
+
+  const deletePropertyDocument = (propertyId, docId) => {
+    setProperties((prev) =>
+      prev.map((p) =>
+        p.id === propertyId ? { ...p, documents: p.documents.filter((d) => d.id !== docId) } : p,
+      ),
+    )
+    deleteFile(docId).catch(() => {})
+    return { ok: true }
+  }
+
+  const propertiesTotals = useMemo(() => {
+    const owned = properties.filter((p) => p.status !== 'sold')
+    const sold = properties.filter((p) => p.status === 'sold')
+    const purchaseOwned = owned.reduce((s, p) => s + num(p.purchasePrice), 0)
+    const purchaseSold = sold.reduce((s, p) => s + num(p.purchasePrice), 0)
+    const saleTotal = sold.reduce((s, p) => s + num(p.salePrice), 0)
+    return {
+      count: properties.length,
+      ownedCount: owned.length,
+      soldCount: sold.length,
+      // رأس المال المرتبط بعقارات لم تُبَع بعد
+      heldValue: purchaseOwned,
+      saleTotal,
+      profit: saleTotal - purchaseSold,
+      documentsCount: properties.reduce((s, p) => s + p.documents.length, 0),
+    }
+  }, [properties])
+
+  /* -------------------- حساب الشريكين (وعد وحسين) ---------------------- */
+
+  /**
+   * قيد بين الشريكين: «من» دفع و«إلى» استلم، فيزيد ما يطلبه الدافع.
+   * معزول تمامًا: لا يمسّ الصيرفة ولا رأس المال ولا أرصدة صفحة الديون.
+   * @returns {{ok: boolean, error?: string}}
+   */
+  const addPartnerEntry = ({ from, to, amount, date, note }) => {
+    const value = num(amount)
+    if (!PARTNER_NAMES.includes(from) || !PARTNER_NAMES.includes(to))
+      return { ok: false, error: 'اختر الطرفين.' }
+    if (from === to) return { ok: false, error: 'لا يمكن أن يكون الطرفان نفس الشخص.' }
+    if (value <= 0) return { ok: false, error: 'المبلغ يجب أن يكون أكبر من صفر.' }
+    setPartnerEntries((prev) => [
+      { id: uid('pe'), from, to, amount: value, date: date || today(), note: note?.trim() || '' },
+      ...prev,
+    ])
+    return { ok: true }
+  }
+
+  /** @returns {{ok: boolean, error?: string}} */
+  const updatePartnerEntry = (id, patch) => {
+    const value = patch.amount === undefined ? undefined : num(patch.amount)
+    if (value !== undefined && value <= 0)
+      return { ok: false, error: 'المبلغ يجب أن يكون أكبر من صفر.' }
+    if (patch.from && patch.to && patch.from === patch.to)
+      return { ok: false, error: 'لا يمكن أن يكون الطرفان نفس الشخص.' }
+    setPartnerEntries((prev) =>
+      prev.map((e) =>
+        e.id === id
+          ? {
+              ...e,
+              ...patch,
+              amount: value === undefined ? e.amount : value,
+              date: patch.date || e.date,
+              note: patch.note === undefined ? e.note : patch.note.trim(),
+            }
+          : e,
+      ),
+    )
+    return { ok: true }
+  }
+
+  const deletePartnerEntry = (id) =>
+    setPartnerEntries((prev) => prev.filter((e) => e.id !== id))
+
+  /**
+   * الرصيد بين الشريكين.
+   * net موجب ⇒ PARTNER_NAMES[0] يطلب الثاني، وسالب ⇒ العكس.
+   */
+  const partnerTotals = useMemo(() => {
+    const [a, b] = PARTNER_NAMES
+    const paidByA = partnerEntries
+      .filter((e) => e.from === a)
+      .reduce((s, e) => s + num(e.amount), 0)
+    const paidByB = partnerEntries
+      .filter((e) => e.from === b)
+      .reduce((s, e) => s + num(e.amount), 0)
+    const net = paidByA - paidByB
+    return {
+      a,
+      b,
+      paidByA,
+      paidByB,
+      net,
+      creditor: net > 0 ? a : net < 0 ? b : null,
+      debtor: net > 0 ? b : net < 0 ? a : null,
+      amount: Math.abs(net),
+      count: partnerEntries.length,
+    }
+  }, [partnerEntries])
+
   /* ------------------------- النسخ الاحتياطي ---------------------------- */
 
   /** كل البيانات ككائن واحد — للتصدير. */
   const exportSnapshot = () => ({
     version: 1,
     exportedAt: new Date().toISOString(),
-    data: { treasury, capital, people, debtEntries, lists, listReceipts, projects },
+    data: {
+      treasury,
+      capital,
+      people,
+      debtEntries,
+      lists,
+      listReceipts,
+      projects,
+      properties,
+      partnerEntries,
+    },
   })
 
   /**
@@ -668,6 +889,12 @@ export function DataProvider({ children }) {
     // النسخ المحفوظة قبل إضافة سندات القوائم لا تحتوي المفتاح
     setListReceipts(Array.isArray(d.listReceipts) ? d.listReceipts : [])
     setProjects(d.projects.map(withKinds))
+    // العقارات اختيارية — نسخ محفوظة قبل إضافتها
+    setPartnerEntries(Array.isArray(d.partnerEntries) ? d.partnerEntries : [])
+    const imported = Array.isArray(d.properties) ? d.properties.map(withDocs) : []
+    setProperties(imported)
+    // ملفات العقارات القديمة لم تعد مرتبطة بشيء بعد الاستبدال
+    pruneFiles(imported.flatMap((p) => p.documents.map((doc) => doc.id))).catch(() => {})
     return { ok: true }
   }
 
@@ -681,6 +908,9 @@ export function DataProvider({ children }) {
     setLists(SEED.lists)
     setListReceipts(SEED.listReceipts)
     setProjects(SEED.projects)
+    setProperties(SEED.properties)
+    setPartnerEntries(SEED.partnerEntries)
+    pruneFiles(SEED.properties.flatMap((p) => p.documents.map((d) => d.id))).catch(() => {})
     return { ok: true }
   }
 
@@ -693,6 +923,9 @@ export function DataProvider({ children }) {
     setLists([])
     setListReceipts([])
     setProjects([])
+    setProperties([])
+    setPartnerEntries([])
+    pruneFiles([]).catch(() => {})
     return { ok: true }
   }
 
@@ -703,6 +936,8 @@ export function DataProvider({ children }) {
     lists: lists.length,
     listReceipts: listReceipts.length,
     projects: projects.length,
+    properties: properties.length,
+    partnerEntries: partnerEntries.length,
   }
 
   const value = {
@@ -757,6 +992,21 @@ export function DataProvider({ children }) {
     projectsTotals,
     projectPartnerOptions,
     partnerInProject,
+    // العقارات
+    properties,
+    getProperty,
+    addProperty,
+    updateProperty,
+    deleteProperty,
+    addPropertyDocument,
+    deletePropertyDocument,
+    propertiesTotals,
+    // حساب الشريكين
+    partnerEntries,
+    addPartnerEntry,
+    updatePartnerEntry,
+    deletePartnerEntry,
+    partnerTotals,
     // النسخ الاحتياطي
     exportSnapshot,
     importSnapshot,

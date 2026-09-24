@@ -74,3 +74,47 @@ export const seedProjects = [
     payouts: [],
   },
 ]
+
+/** أنواع العقارات المتاحة في النموذج. */
+export const PROPERTY_TYPES = ['أرض', 'دار', 'شقة', 'عمارة', 'محل', 'مزرعة', 'أخرى']
+
+export const seedProperties = [
+  {
+    id: 'rp1',
+    name: 'قطعة أرض الجادرية',
+    type: 'أرض',
+    partners: ['أبو محمد', 'أبو ليث'],
+    purchasePrice: 180000000,
+    purchaseDate: '2026-05-12',
+    salePrice: 0,
+    saleDate: '',
+    status: 'owned',
+    notes: 'مساحة 300 م² — واجهة 12 م',
+    documents: [],
+  },
+  {
+    id: 'rp2',
+    name: 'دار حي الجامعة',
+    type: 'دار',
+    partners: ['أبو سيف'],
+    purchasePrice: 95000000,
+    purchaseDate: '2026-03-02',
+    salePrice: 132000000,
+    saleDate: '2026-08-20',
+    status: 'sold',
+    notes: '',
+    documents: [],
+  },
+]
+
+/** طرفا الحساب المتبادل داخل الشركة. */
+export const PARTNER_NAMES = ['وعد', 'حسين']
+
+/**
+ * قيود الحساب بين الشريكين.
+ * القيد «من A إلى B» يعني أن A دفع أو أعطى B، فيزيد ما يطلبه A من B.
+ */
+export const seedPartnerEntries = [
+  { id: 'pe1', from: 'وعد', to: 'حسين', amount: 5000000, date: '2026-08-05', note: 'دفعة نقدية' },
+  { id: 'pe2', from: 'حسين', to: 'وعد', amount: 1750000, date: '2026-08-21', note: 'تسديد جزئي' },
+]
