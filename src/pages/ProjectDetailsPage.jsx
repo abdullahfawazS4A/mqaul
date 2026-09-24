@@ -10,6 +10,7 @@ import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
 import Combobox from '../components/ui/Combobox.jsx'
 import { useToast } from '../components/ui/Toast.jsx'
 import ProjectSection from '../components/projects/ProjectSection.jsx'
+import ProjectEntryDetails from '../components/projects/ProjectEntryDetails.jsx'
 import ProjectEntryForm from '../components/projects/ProjectEntryForm.jsx'
 import ProjectForm from '../components/projects/ProjectForm.jsx'
 import { CURRENCY, formatDate, formatMoney } from '../utils/format.js'
@@ -20,6 +21,35 @@ const KIND_LABELS = {
   expenses: 'المصروف',
   advances: 'السلفة',
   payouts: 'التسليم للشريك',
+}
+
+/** أعمدة كل قسم ولونه — يستخدمها الجدول ونافذة التفاصيل معًا. */
+const KIND_META = {
+  deposits: {
+    label: KIND_LABELS.deposits,
+    tone: 'emerald',
+    columns: [{ key: 'partner', label: 'الشريك' }],
+  },
+  expenses: {
+    label: KIND_LABELS.expenses,
+    tone: 'red',
+    columns: [
+      { key: 'description', label: 'الوصف / السبب' },
+      { key: 'spender', label: 'من قام بالصرف' },
+    ],
+    noteKey: 'description',
+    noteLabel: 'الوصف / السبب',
+  },
+  advances: {
+    label: KIND_LABELS.advances,
+    tone: 'slate',
+    columns: [{ key: 'source', label: 'من جهة / شخص' }],
+  },
+  payouts: {
+    label: KIND_LABELS.payouts,
+    tone: 'amber',
+    columns: [{ key: 'partner', label: 'الشريك' }],
+  },
 }
 
 export default function ProjectDetailsPage() {
@@ -41,6 +71,7 @@ export default function ProjectDetailsPage() {
   const [entryForm, setEntryForm] = useState(null) // { kind, initial? }
   const [editOpen, setEditOpen] = useState(false)
   const [confirm, setConfirm] = useState(null) // { kind: 'item'|'project', itemKind?, item? }
+  const [entryDetails, setEntryDetails] = useState(null) // { kind, item }
   const [partnerKey, setPartnerKey] = useState('') // '' = كل الحركات
 
   const project = getProject(projectId)
@@ -119,7 +150,9 @@ export default function ProjectDetailsPage() {
     partner ? `لا توجد ${word} لهذا الشريك في المشروع.` : `لا توجد ${word} بعد.`
 
   const sectionProps = (kind) => ({
+    columns: KIND_META[kind].columns,
     onAdd: () => setEntryForm({ kind }),
+    onOpen: (item) => setEntryDetails({ kind, item }),
     onEdit: (item) => setEntryForm({ kind, initial: item }),
     onDelete: (item) => setConfirm({ kind: 'item', itemKind: kind, item }),
   })
@@ -266,7 +299,6 @@ export default function ProjectDetailsPage() {
           title="إيداعات الشركاء"
           subtitle={countLabel(shown.deposits, 'إيداع')}
           items={shown.deposits}
-          columns={[{ key: 'partner', label: 'الشريك' }]}
           amountTone="text-emerald-600"
           emptyText={emptyLabel('إيداعات')}
           {...sectionProps('deposits')}
@@ -276,10 +308,6 @@ export default function ProjectDetailsPage() {
           title="المصاريف"
           subtitle={countLabel(shown.expenses, 'مصروف')}
           items={shown.expenses}
-          columns={[
-            { key: 'description', label: 'الوصف / السبب' },
-            { key: 'spender', label: 'من قام بالصرف' },
-          ]}
           amountTone="text-red-600"
           emptyText={emptyLabel('مصاريف')}
           {...sectionProps('expenses')}
@@ -289,7 +317,6 @@ export default function ProjectDetailsPage() {
           title="السلف المستلمة"
           subtitle={countLabel(shown.advances, 'سلفة')}
           items={shown.advances}
-          columns={[{ key: 'source', label: 'من جهة / شخص' }]}
           amountTone="text-slate-800"
           emptyText={emptyLabel('سلف مستلمة')}
           {...sectionProps('advances')}
@@ -299,12 +326,27 @@ export default function ProjectDetailsPage() {
           title="التسليمات للشركاء"
           subtitle={countLabel(shown.payouts, 'تسليم')}
           items={shown.payouts}
-          columns={[{ key: 'partner', label: 'الشريك' }]}
           amountTone="text-amber-600"
           emptyText={emptyLabel('تسليمات')}
           {...sectionProps('payouts')}
         />
       </div>
+
+      <ProjectEntryDetails
+        entry={entryDetails?.item}
+        meta={entryDetails ? KIND_META[entryDetails.kind] : null}
+        onClose={() => setEntryDetails(null)}
+        onEdit={(item) => {
+          const kind = entryDetails.kind
+          setEntryDetails(null)
+          setEntryForm({ kind, initial: item })
+        }}
+        onDelete={(item) => {
+          const kind = entryDetails.kind
+          setEntryDetails(null)
+          setConfirm({ kind: 'item', itemKind: kind, item })
+        }}
+      />
 
       <ProjectEntryForm
         open={entryForm !== null}

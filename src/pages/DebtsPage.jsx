@@ -6,6 +6,7 @@ import Card, { CardHeader } from '../components/ui/Card.jsx'
 import Button from '../components/ui/Button.jsx'
 import Icon from '../components/ui/Icon.jsx'
 import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
+import DetailsModal from '../components/ui/DetailsModal.jsx'
 import { useToast } from '../components/ui/Toast.jsx'
 import { ErrorMessage, Input } from '../components/ui/Field.jsx'
 import CapitalCard from '../components/debts/CapitalCard.jsx'
@@ -34,6 +35,7 @@ export default function DebtsPage() {
   const { notify } = useToast()
 
   const [search, setSearch] = useState('')
+  const [personDetails, setPersonDetails] = useState(null)
   const [sort, setSort] = useState('debt')
   const [personFormOpen, setPersonFormOpen] = useState(false)
   const [entryForm, setEntryForm] = useState(null) // { kind, person }
@@ -165,6 +167,7 @@ export default function DebtsPage() {
         />
         <PeopleTable
           people={visible}
+          onOpen={setPersonDetails}
           emptyText={
             search.trim()
               ? 'لا يوجد شخص مطابق للبحث.'
@@ -175,6 +178,25 @@ export default function DebtsPage() {
           onDelete={setConfirmPerson}
         />
       </Card>
+
+      <DetailsModal
+        open={personDetails !== null}
+        title={personDetails?.name}
+        tone={personDetails?.balance > 0 ? 'red' : personDetails?.balance < 0 ? 'emerald' : 'slate'}
+        badge={
+          personDetails?.balance > 0
+            ? 'دين عليه'
+            : personDetails?.balance < 0
+              ? 'رصيد له لدينا'
+              : 'مسدَّد بالكامل'
+        }
+        amount={Math.abs(personDetails?.balance || 0)}
+        rows={[{ label: 'الهاتف', value: personDetails?.phone, num: true }]}
+        note={personDetails?.notes}
+        noteLabel="ملاحظات"
+        emptyNoteText="لا توجد ملاحظات."
+        onClose={() => setPersonDetails(null)}
+      />
 
       <PersonForm
         open={personFormOpen}

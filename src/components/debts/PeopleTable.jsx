@@ -42,20 +42,42 @@ function Actions({ person, onAddDebt, onAddReceipt, onDelete, size = 'sm' }) {
 }
 
 export default function PeopleTable(props) {
-  const { people, emptyText = 'لا يوجد أشخاص بعد — أضف مستخدمًا للبدء.' } = props
+  const { people, onOpen, emptyText = 'لا يوجد أشخاص بعد — أضف مستخدمًا للبدء.' } = props
 
   if (people.length === 0) return <EmptyState text={emptyText} />
+
+  // فتح التفاصيل بالنقر على السطر — مع منع الروابط والأزرار من تشغيله.
+  const openProps = (p) => ({
+    role: 'button',
+    tabIndex: 0,
+    onClick: () => onOpen?.(p),
+    onKeyDown: (ev) => {
+      if (ev.key === 'Enter' || ev.key === ' ') {
+        ev.preventDefault()
+        onOpen?.(p)
+      }
+    },
+  })
+  const stop = {
+    onClick: (ev) => ev.stopPropagation(),
+    onKeyDown: (ev) => ev.stopPropagation(),
+  }
 
   return (
     <>
       {/* موبايل */}
       <ul className="divide-y divide-slate-100 md:hidden">
         {people.map((p) => (
-          <li key={p.id} className="px-4 py-3">
+          <li
+            key={p.id}
+            {...openProps(p)}
+            className="cursor-pointer px-4 py-3 transition-colors active:bg-slate-50"
+          >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <Link
                   to={`/debts/${p.id}`}
+                  {...stop}
                   className="truncate text-sm font-medium text-slate-800 hover:text-slate-600"
                 >
                   {p.name}
@@ -70,7 +92,7 @@ export default function PeopleTable(props) {
                 <BalanceHint balance={p.balance} />
               </div>
             </div>
-            <div className="mt-2.5">
+            <div className="mt-2.5" {...stop}>
               <Actions person={p} {...props} />
             </div>
           </li>
@@ -91,9 +113,9 @@ export default function PeopleTable(props) {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {people.map((p) => (
-              <tr key={p.id} className="hover:bg-slate-50/70">
+              <tr key={p.id} {...openProps(p)} className="cursor-pointer hover:bg-slate-50/70">
                 <td className="px-4 py-2.5 font-medium text-slate-800">
-                  <Link to={`/debts/${p.id}`} className="hover:text-slate-600">
+                  <Link to={`/debts/${p.id}`} {...stop} className="hover:text-slate-600">
                     {p.name}
                   </Link>
                 </td>
@@ -105,7 +127,7 @@ export default function PeopleTable(props) {
                   {formatMoney(Math.abs(p.balance))}{' '}
                   <BalanceHint balance={p.balance} />
                 </td>
-                <td className="px-4 py-2.5">
+                <td className="px-4 py-2.5" {...stop}>
                   <Actions person={p} {...props} />
                 </td>
               </tr>

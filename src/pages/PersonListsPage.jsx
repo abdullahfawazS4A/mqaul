@@ -9,8 +9,10 @@ import Button from '../components/ui/Button.jsx'
 import Icon from '../components/ui/Icon.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
 import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
+import DetailsModal from '../components/ui/DetailsModal.jsx'
 import { useToast } from '../components/ui/Toast.jsx'
 import ListReceiptForm from '../components/lists/ListReceiptForm.jsx'
+import ListDetails from '../components/lists/ListDetails.jsx'
 import { CURRENCY, formatDate, formatMoney } from '../utils/format.js'
 import { downloadXLSX, stampedName } from '../utils/download.js'
 import { S } from '../utils/xlsx.js'
@@ -52,6 +54,8 @@ export default function PersonListsPage() {
 
   const [receiptOpen, setReceiptOpen] = useState(false)
   const [confirmReceipt, setConfirmReceipt] = useState(null)
+  const [listDetails, setListDetails] = useState(null)
+  const [receiptDetails, setReceiptDetails] = useState(null)
 
   const person = getPerson(personId)
   const lists = person ? listsOfPerson(person.id) : []
@@ -82,6 +86,23 @@ export default function PersonListsPage() {
         </EmptyState>
       </div>
     )
+  }
+
+  // فتح التفاصيل بالنقر — مع منع الأزرار من تشغيله.
+  const openProps = (fn, item) => ({
+    role: 'button',
+    tabIndex: 0,
+    onClick: () => fn(item),
+    onKeyDown: (ev) => {
+      if (ev.key === 'Enter' || ev.key === ' ') {
+        ev.preventDefault()
+        fn(item)
+      }
+    },
+  })
+  const stop = {
+    onClick: (ev) => ev.stopPropagation(),
+    onKeyDown: (ev) => ev.stopPropagation(),
   }
 
   const exportXLSX = () => {
@@ -214,7 +235,11 @@ export default function PersonListsPage() {
             {/* موبايل */}
             <ul className="divide-y divide-slate-100 md:hidden">
               {lists.map((l) => (
-                <li key={l.id} className="px-4 py-3">
+                <li
+                  key={l.id}
+                  {...openProps(setListDetails, l)}
+                  className="cursor-pointer px-4 py-3 transition-colors active:bg-slate-50"
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="num text-sm font-medium text-slate-800">
@@ -231,7 +256,9 @@ export default function PersonListsPage() {
                       <span className="num text-sm font-semibold text-slate-800">
                         {formatMoney(l.profit)}
                       </span>
-                      <StatusBadge status={l.status} onClick={() => toggleListStatus(l.id)} />
+                      <span {...stop}>
+                        <StatusBadge status={l.status} onClick={() => toggleListStatus(l.id)} />
+                      </span>
                     </div>
                   </div>
                 </li>
@@ -253,14 +280,18 @@ export default function PersonListsPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {lists.map((l) => (
-                    <tr key={l.id} className="hover:bg-slate-50/70">
+                    <tr
+                      key={l.id}
+                      {...openProps(setListDetails, l)}
+                      className="cursor-pointer hover:bg-slate-50/70"
+                    >
                       <td className="num px-4 py-2.5 font-medium text-slate-800">{l.listNumber}</td>
                       <td className="num px-4 py-2.5 text-slate-500">{formatDate(l.date)}</td>
                       <td className="num px-4 py-2.5 text-slate-700">{formatMoney(l.value)}</td>
                       <td className="num px-4 py-2.5 font-semibold text-slate-800">
                         {formatMoney(l.profit)}
                       </td>
-                      <td className="px-4 py-2.5">
+                      <td className="px-4 py-2.5" {...stop}>
                         <StatusBadge status={l.status} onClick={() => toggleListStatus(l.id)} />
                       </td>
                       <td className="max-w-[18rem] px-4 py-2.5 text-slate-500">
@@ -291,7 +322,11 @@ export default function PersonListsPage() {
         ) : (
           <ul className="divide-y divide-slate-100">
             {receipts.map((r) => (
-              <li key={r.id} className="flex items-start justify-between gap-3 px-4 py-3">
+              <li
+                key={r.id}
+                {...openProps(setReceiptDetails, r)}
+                className="flex cursor-pointer items-start justify-between gap-3 px-4 py-3 transition-colors active:bg-slate-50"
+              >
                 <div className="min-w-0">
                   <p className="num text-sm font-semibold text-emerald-600">
                     {formatMoney(r.amount)}{' '}
@@ -304,20 +339,45 @@ export default function PersonListsPage() {
                     </p>
                   )}
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setConfirmReceipt(r)}
-                  aria-label="حذف السند"
-                  className="print:hidden"
-                >
-                  <Icon name="trash" className="h-4 w-4" />
-                </Button>
+                <span {...stop}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setConfirmReceipt(r)}
+                    aria-label="حذف السند"
+                    className="print:hidden"
+                  >
+                    <Icon name="trash" className="h-4 w-4" />
+                  </Button>
+                </span>
               </li>
             ))}
           </ul>
         )}
       </Card>
+
+      <ListDetails
+        item={listDetails}
+        onClose={() => setListDetails(null)}
+      />
+
+      <DetailsModal
+        open={receiptDetails !== null}
+        title="تفاصيل سند القبض"
+        tone="emerald"
+        badge="سند قبض"
+        badgeIcon="arrowDown"
+        amount={receiptDetails?.amount}
+        rows={[{ label: 'التاريخ', value: formatDate(receiptDetails?.date), num: true }]}
+        note={receiptDetails?.note}
+        onClose={() => setReceiptDetails(null)}
+        onDelete={() => {
+          const r = receiptDetails
+          setReceiptDetails(null)
+          setConfirmReceipt(r)
+        }}
+        deleteLabel="حذف السند"
+      />
 
       <ListReceiptForm
         open={receiptOpen}

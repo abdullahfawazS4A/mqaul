@@ -16,11 +16,29 @@ export default function ProjectSection({
   amountTone = 'text-slate-800',
   emptyText,
   onAdd,
+  onOpen,
   onEdit,
   onDelete,
 }) {
+  // فتح التفاصيل بالنقر على السطر — مع منع الأزرار من تشغيله.
+  const openProps = (item) => ({
+    role: 'button',
+    tabIndex: 0,
+    onClick: () => onOpen?.(item),
+    onKeyDown: (ev) => {
+      if (ev.key === 'Enter' || ev.key === ' ') {
+        ev.preventDefault()
+        onOpen?.(item)
+      }
+    },
+  })
+
   const actions = (item) => (
-    <div className="flex justify-end gap-1 print:hidden">
+    <div
+      className="flex justify-end gap-1 print:hidden"
+      onClick={(ev) => ev.stopPropagation()}
+      onKeyDown={(ev) => ev.stopPropagation()}
+    >
       <Button variant="ghost" size="sm" onClick={() => onEdit(item)} aria-label="تعديل">
         <Icon name="edit" className="h-4 w-4" />
       </Button>
@@ -50,7 +68,11 @@ export default function ProjectSection({
           {/* موبايل */}
           <ul className="divide-y divide-slate-100 sm:hidden">
             {items.map((item) => (
-              <li key={item.id} className="flex items-start justify-between gap-3 px-4 py-3">
+              <li
+                key={item.id}
+                {...openProps(item)}
+                className="flex cursor-pointer items-start justify-between gap-3 px-4 py-3 transition-colors active:bg-slate-50"
+              >
                 <div className="min-w-0">
                   {columns.map((c) => (
                     <p key={c.key} className="truncate text-xs text-slate-600">
@@ -87,7 +109,11 @@ export default function ProjectSection({
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {items.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/70">
+                  <tr
+                    key={item.id}
+                    {...openProps(item)}
+                    className="cursor-pointer hover:bg-slate-50/70"
+                  >
                     <td className={`num px-4 py-2.5 font-semibold ${amountTone}`}>
                       {formatMoney(item.amount)}
                     </td>

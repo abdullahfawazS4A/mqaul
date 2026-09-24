@@ -12,6 +12,7 @@ import { Input } from '../components/ui/Field.jsx'
 import ListForm from '../components/lists/ListForm.jsx'
 import ListsTable from '../components/lists/ListsTable.jsx'
 import ListDebtsTable from '../components/lists/ListDebtsTable.jsx'
+import ListDetails from '../components/lists/ListDetails.jsx'
 import { CURRENCY, formatMoney } from '../utils/format.js'
 import { downloadXLSX, stampedName } from '../utils/download.js'
 
@@ -46,6 +47,7 @@ export default function ListsPage() {
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [confirmList, setConfirmList] = useState(null)
+  const [listDetails, setListDetails] = useState(null)
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -202,6 +204,7 @@ export default function ListsPage() {
             />
             <ListsTable
               lists={visible}
+              onOpen={setListDetails}
               onEdit={openEdit}
               onDelete={setConfirmList}
               onToggleStatus={toggleListStatus}
@@ -260,6 +263,19 @@ export default function ListsPage() {
           </Card>
         </>
       )}
+
+      <ListDetails
+        item={listDetails}
+        onClose={() => setListDetails(null)}
+        onEdit={(item) => {
+          setListDetails(null)
+          openEdit(item)
+        }}
+        onDelete={(item) => {
+          setListDetails(null)
+          setConfirmList(item)
+        }}
+      />
 
       <ListForm
         open={formOpen}

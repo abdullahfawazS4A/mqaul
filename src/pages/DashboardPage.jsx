@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useData } from '../data/DataContext.jsx'
 import PageHeader from '../components/ui/PageHeader.jsx'
 import StatCard from '../components/ui/StatCard.jsx'
 import Card, { CardHeader } from '../components/ui/Card.jsx'
+import TreasuryDetails from '../components/treasury/TreasuryDetails.jsx'
 import Icon from '../components/ui/Icon.jsx'
 import EmptyState from '../components/ui/EmptyState.jsx'
 import { CURRENCY, formatDate, formatMoney } from '../utils/format.js'
@@ -38,6 +40,7 @@ function SectionLink({ to, icon, title, lines }) {
 
 /** لوحة المعلومات — نظرة واحدة على كل الأقسام. */
 export default function DashboardPage() {
+  const [details, setDetails] = useState(null)
   const {
     treasuryBalance,
     treasuryTotals,
@@ -142,13 +145,28 @@ export default function DashboardPage() {
       </div>
 
       <Card className="overflow-hidden">
-        <CardHeader title="آخر حركات الصيرفة" subtitle="أحدث 5 عمليات" />
+        <CardHeader
+          title="آخر حركات الصيرفة"
+          subtitle="أحدث 5 عمليات — اضغط على أي حركة لعرض تفاصيلها"
+        />
         {recent.length === 0 ? (
           <EmptyState text="لا توجد عمليات بعد." />
         ) : (
           <ul className="divide-y divide-slate-100">
             {recent.map((e) => (
-              <li key={e.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+              <li
+                key={e.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => setDetails(e)}
+                onKeyDown={(ev) => {
+                  if (ev.key === 'Enter' || ev.key === ' ') {
+                    ev.preventDefault()
+                    setDetails(e)
+                  }
+                }}
+                className="flex cursor-pointer items-center justify-between gap-3 px-4 py-2.5 transition-colors hover:bg-slate-50/70 active:bg-slate-50"
+              >
                 <div className="min-w-0">
                   <p className="truncate text-sm text-slate-700">{e.note || '—'}</p>
                   <p className="num text-xs text-slate-400">{formatDate(e.date)}</p>
@@ -167,6 +185,9 @@ export default function DashboardPage() {
           </ul>
         )}
       </Card>
+
+      {/* عرض فقط — التعديل والحذف من صفحة الصيرفة */}
+      <TreasuryDetails entry={details} onClose={() => setDetails(null)} />
     </div>
   )
 }
