@@ -11,6 +11,8 @@ import EmptyState from '../components/ui/EmptyState.jsx'
 import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
 import DetailsModal from '../components/ui/DetailsModal.jsx'
 import { useToast } from '../components/ui/Toast.jsx'
+import { usePrint } from '../components/print/PrintProvider.jsx'
+import { listReceiptVoucher } from '../components/print/vouchers.js'
 import ListReceiptForm from '../components/lists/ListReceiptForm.jsx'
 import ListDetails from '../components/lists/ListDetails.jsx'
 import { CURRENCY, formatDate, formatMoney } from '../utils/format.js'
@@ -51,6 +53,7 @@ export default function PersonListsPage() {
   } = useLists()
   const { getPerson } = useData()
   const { notify } = useToast()
+  const { printVoucher, offerPrint } = usePrint()
 
   const [receiptOpen, setReceiptOpen] = useState(false)
   const [confirmReceipt, setConfirmReceipt] = useState(null)
@@ -349,7 +352,15 @@ export default function PersonListsPage() {
                     </p>
                   )}
                 </div>
-                <span {...stop}>
+                <span {...stop} className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => printVoucher(listReceiptVoucher(r, person.name))}
+                    aria-label="طباعة السند"
+                  >
+                    <Icon name="print" className="h-4 w-4" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -381,6 +392,7 @@ export default function PersonListsPage() {
         rows={[{ label: 'التاريخ', value: formatDate(receiptDetails?.date), num: true }]}
         note={receiptDetails?.note}
         onClose={() => setReceiptDetails(null)}
+        onPrint={() => printVoucher(listReceiptVoucher(receiptDetails, person.name))}
         onDelete={() => {
           const r = receiptDetails
           setReceiptDetails(null)
@@ -396,7 +408,10 @@ export default function PersonListsPage() {
         onClose={() => setReceiptOpen(false)}
         onSubmit={(data) => {
           const res = addListReceipt(data)
-          if (res?.ok) notify('تم تسجيل سند القبض.')
+          if (res?.ok) {
+            notify('تم تسجيل سند القبض.')
+            offerPrint(listReceiptVoucher(res.entry, person.name))
+          }
           return res
         }}
       />

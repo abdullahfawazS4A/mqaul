@@ -8,6 +8,8 @@ import Icon from '../components/ui/Icon.jsx'
 import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
 import DetailsModal from '../components/ui/DetailsModal.jsx'
 import { useToast } from '../components/ui/Toast.jsx'
+import { usePrint } from '../components/print/PrintProvider.jsx'
+import { debtVoucher } from '../components/print/vouchers.js'
 import { ErrorMessage, Input } from '../components/ui/Field.jsx'
 import CapitalCard from '../components/debts/CapitalCard.jsx'
 import PeopleTable from '../components/debts/PeopleTable.jsx'
@@ -33,6 +35,7 @@ export default function DebtsPage() {
     addReceipt,
   } = useDebts()
   const { notify } = useToast()
+  const { offerPrint } = usePrint()
 
   const [search, setSearch] = useState('')
   const [personDetails, setPersonDetails] = useState(null)
@@ -68,7 +71,10 @@ export default function DebtsPage() {
 
   const submitEntry = (data) => {
     const res = entryForm?.kind === 'debt' ? addDebt(data) : addReceipt(data)
-    if (res?.ok) notify(entryForm?.kind === 'debt' ? 'تمت إضافة الدين.' : 'تم تسجيل سند القبض.')
+    if (res?.ok) {
+      notify(entryForm?.kind === 'debt' ? 'تمت إضافة الدين.' : 'تم تسجيل سند القبض.')
+      offerPrint(debtVoucher(res.entry, entryForm.person.name))
+    }
     return res
   }
 

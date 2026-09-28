@@ -7,6 +7,8 @@ import Button from '../components/ui/Button.jsx'
 import Icon from '../components/ui/Icon.jsx'
 import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
 import { useToast } from '../components/ui/Toast.jsx'
+import { usePrint } from '../components/print/PrintProvider.jsx'
+import { treasuryVoucher } from '../components/print/vouchers.js'
 import { Input } from '../components/ui/Field.jsx'
 import DateRangePicker from '../components/ui/DateRangePicker.jsx'
 import TreasuryForm from '../components/treasury/TreasuryForm.jsx'
@@ -25,6 +27,7 @@ export default function TreasuryPage() {
   const { entries, balance, totals, addTreasuryEntry, updateTreasuryEntry, deleteTreasuryEntry } =
     useTreasury()
   const { notify } = useToast()
+  const { printVoucher, offerPrint } = usePrint()
 
   const [form, setForm] = useState(null) // { type, initial? }
   const [details, setDetails] = useState(null)
@@ -62,7 +65,10 @@ export default function TreasuryPage() {
     const res = form?.initial
       ? updateTreasuryEntry(form.initial.id, data)
       : addTreasuryEntry(data)
-    if (res?.ok) notify(form?.initial ? 'تم تعديل العملية.' : 'تمت إضافة العملية.')
+    if (res?.ok) {
+      notify(form?.initial ? 'تم تعديل العملية.' : 'تمت إضافة العملية.')
+      offerPrint(treasuryVoucher(res.entry || { ...form.initial, ...data }))
+    }
     return res
   }
 
@@ -196,6 +202,7 @@ export default function TreasuryPage() {
           onOpen={setDetails}
           onEdit={(entry) => setForm({ type: entry.type, initial: entry })}
           onDelete={setConfirmEntry}
+          onPrint={(entry) => printVoucher(treasuryVoucher(entry))}
         />
       </Card>
 

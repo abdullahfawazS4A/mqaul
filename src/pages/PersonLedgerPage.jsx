@@ -11,6 +11,8 @@ import EmptyState from '../components/ui/EmptyState.jsx'
 import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
 import { ErrorMessage, Input } from '../components/ui/Field.jsx'
 import { useToast } from '../components/ui/Toast.jsx'
+import { usePrint } from '../components/print/PrintProvider.jsx'
+import { debtVoucher } from '../components/print/vouchers.js'
 import PersonForm from '../components/debts/PersonForm.jsx'
 import DebtEntryForm from '../components/debts/DebtEntryForm.jsx'
 import DebtEntryDetails from '../components/debts/DebtEntryDetails.jsx'
@@ -53,6 +55,7 @@ export default function PersonLedgerPage() {
   } = useDebts()
   const { listsOfPerson } = useData()
   const { notify } = useToast()
+  const { printVoucher, offerPrint } = usePrint()
 
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('all')
@@ -111,6 +114,7 @@ export default function PersonLedgerPage() {
             ? 'تمت إضافة الدين.'
             : 'تم تسجيل سند القبض.',
       )
+      offerPrint(debtVoucher(res.entry || { ...entryForm.initial, ...data }, person.name))
     }
     return res
   }
@@ -190,6 +194,14 @@ export default function PersonLedgerPage() {
       onClick={(ev) => ev.stopPropagation()}
       onKeyDown={(ev) => ev.stopPropagation()}
     >
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => printVoucher(debtVoucher(e, person.name))}
+        aria-label="طباعة السند"
+      >
+        <Icon name="print" className="h-4 w-4" />
+      </Button>
       <Button
         variant="ghost"
         size="sm"

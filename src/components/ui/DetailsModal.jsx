@@ -26,6 +26,7 @@ function Row({ label, children }) {
  *
  * rows: [{ label, value }] — القيم النصية أسفل المبلغ.
  * note: تُعرض كاملة؛ إن كانت فارغة يظهر بديل واضح.
+ * onPrint: إن مُرِّر يظهر زر «طباعة السند».
  */
 export default function DetailsModal({
   open = true,
@@ -43,6 +44,7 @@ export default function DetailsModal({
   onClose,
   onEdit,
   onDelete,
+  onPrint,
   editLabel = 'تعديل',
   deleteLabel = 'حذف',
 }) {
@@ -70,6 +72,12 @@ export default function DetailsModal({
             <Button variant={hasActions ? 'secondary' : 'primary'} onClick={onClose}>
               إغلاق
             </Button>
+            {onPrint && (
+              <Button variant="secondary" onClick={onPrint}>
+                <Icon name="print" className="h-4 w-4" />
+                طباعة السند
+              </Button>
+            )}
             {onEdit && (
               <Button variant="primary" onClick={onEdit}>
                 <Icon name="edit" className="h-4 w-4" />

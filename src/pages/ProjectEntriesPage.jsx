@@ -11,6 +11,8 @@ import Combobox from '../components/ui/Combobox.jsx'
 import Card from '../components/ui/Card.jsx'
 import { Input } from '../components/ui/Field.jsx'
 import { useToast } from '../components/ui/Toast.jsx'
+import { usePrint } from '../components/print/PrintProvider.jsx'
+import { projectVoucher } from '../components/print/vouchers.js'
 import ProjectSection from '../components/projects/ProjectSection.jsx'
 import ProjectEntryDetails from '../components/projects/ProjectEntryDetails.jsx'
 import ProjectEntryForm from '../components/projects/ProjectEntryForm.jsx'
@@ -32,6 +34,7 @@ export default function ProjectEntriesPage() {
     partnerInProject,
   } = useProjects()
   const { notify } = useToast()
+  const { printVoucher, offerPrint } = usePrint()
 
   const [entryForm, setEntryForm] = useState(null) // { initial? }
   const [details, setDetails] = useState(null)
@@ -104,7 +107,10 @@ export default function ProjectEntriesPage() {
     const res = entryForm?.initial
       ? updateProjectItem(project.id, kind, entryForm.initial.id, data)
       : addProjectItem(project.id, kind, data)
-    if (res?.ok) notify(entryForm?.initial ? 'تم تعديل الحركة.' : 'تمت إضافة الحركة.')
+    if (res?.ok) {
+      notify(entryForm?.initial ? 'تم تعديل الحركة.' : 'تمت إضافة الحركة.')
+      offerPrint(projectVoucher(res.item || { ...entryForm.initial, ...data }, kind, project))
+    }
     return res
   }
 
@@ -244,10 +250,13 @@ export default function ProjectEntriesPage() {
         onOpen={setDetails}
         onEdit={(item) => setEntryForm({ initial: item })}
         onDelete={setConfirm}
+        onPrint={(item) => printVoucher(projectVoucher(item, kind, project))}
       />
 
       <ProjectEntryDetails
         entry={details}
+        kind={kind}
+        project={project}
         meta={meta}
         onClose={() => setDetails(null)}
         onEdit={(item) => {

@@ -1,8 +1,11 @@
 import DetailsModal from '../ui/DetailsModal.jsx'
 import { formatDate } from '../../utils/format.js'
+import { usePrint } from '../print/PrintProvider.jsx'
+import { debtVoucher } from '../print/vouchers.js'
 
 /** تفاصيل حركة في سجل شخص — يعرض الملاحظة كاملة مهما طالت. */
 export default function DebtEntryDetails({ entry, personName, onClose, onEdit, onDelete }) {
+  const { printVoucher } = usePrint()
   if (!entry) return null
 
   const isDebt = entry.type === 'debt'
@@ -21,6 +24,7 @@ export default function DebtEntryDetails({ entry, personName, onClose, onEdit, o
       ]}
       note={entry.note}
       onClose={onClose}
+      onPrint={() => printVoucher(debtVoucher(entry, personName))}
       onEdit={onEdit ? () => onEdit(entry) : undefined}
       onDelete={onDelete ? () => onDelete(entry) : undefined}
     />

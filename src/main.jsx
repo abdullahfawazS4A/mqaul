@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App.jsx'
 import { DataProvider } from './data/DataContext.jsx'
 import { ToastProvider } from './components/ui/Toast.jsx'
+import { PrintProvider } from './components/print/PrintProvider.jsx'
 import './index.css'
 
 // تسجيل الـService Worker — يتيح التثبيت كتطبيق والعمل بلا إنترنت.
@@ -19,7 +20,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <DataProvider>
         <ToastProvider>
-          <App />
+          <PrintProvider>
+            <App />
+          </PrintProvider>
         </ToastProvider>
       </DataProvider>
     </BrowserRouter>

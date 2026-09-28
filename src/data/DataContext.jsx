@@ -234,18 +234,16 @@ export function DataProvider({ children }) {
         error: `المبلغ المطلوب أكبر من الرصيد الكلي المتاح (${availableCapital.toLocaleString('en-US')}).`,
       }
     }
-    setDebtEntries((prev) => [
-      {
-        id: uid('d'),
-        personId,
-        type: 'debt',
-        amount: value,
-        date: date || today(),
-        note: note?.trim() || '',
-      },
-      ...prev,
-    ])
-    return { ok: true }
+    const entry = {
+      id: uid('d'),
+      personId,
+      type: 'debt',
+      amount: value,
+      date: date || today(),
+      note: note?.trim() || '',
+    }
+    setDebtEntries((prev) => [entry, ...prev])
+    return { ok: true, entry }
   }
 
   /**
@@ -256,18 +254,16 @@ export function DataProvider({ children }) {
   const addReceipt = ({ personId, amount, date, note }) => {
     const value = num(amount)
     if (value <= 0) return { ok: false, error: 'المبلغ يجب أن يكون أكبر من صفر.' }
-    setDebtEntries((prev) => [
-      {
-        id: uid('d'),
-        personId,
-        type: 'receipt',
-        amount: value,
-        date: date || today(),
-        note: note?.trim() || '',
-      },
-      ...prev,
-    ])
-    return { ok: true }
+    const entry = {
+      id: uid('d'),
+      personId,
+      type: 'receipt',
+      amount: value,
+      date: date || today(),
+      note: note?.trim() || '',
+    }
+    setDebtEntries((prev) => [entry, ...prev])
+    return { ok: true, entry }
   }
 
   const deleteDebtEntry = (id) => setDebtEntries((prev) => prev.filter((e) => e.id !== id))
@@ -406,11 +402,15 @@ export function DataProvider({ children }) {
     const value = num(amount)
     if (!personId) return { ok: false, error: 'اختر الشخص أولًا.' }
     if (value <= 0) return { ok: false, error: 'المبلغ يجب أن يكون أكبر من صفر.' }
-    setListReceipts((prev) => [
-      { id: uid('lr'), personId, amount: value, date: date || today(), note: note?.trim() || '' },
-      ...prev,
-    ])
-    return { ok: true }
+    const entry = {
+      id: uid('lr'),
+      personId,
+      amount: value,
+      date: date || today(),
+      note: note?.trim() || '',
+    }
+    setListReceipts((prev) => [entry, ...prev])
+    return { ok: true, entry }
   }
 
   /** @returns {{ok: boolean, error?: string}} */

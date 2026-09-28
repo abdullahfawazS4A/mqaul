@@ -17,7 +17,7 @@ function TypeBadge({ type }) {
   )
 }
 
-export default function TreasuryTable({ entries, onOpen, onEdit, onDelete, emptyText }) {
+export default function TreasuryTable({ entries, onOpen, onEdit, onDelete, onPrint, emptyText }) {
   if (entries.length === 0)
     return <EmptyState text={emptyText || 'لا توجد عمليات مسجّلة بعد.'} />
 
@@ -40,6 +40,11 @@ export default function TreasuryTable({ entries, onOpen, onEdit, onDelete, empty
       onClick={(ev) => ev.stopPropagation()}
       onKeyDown={(ev) => ev.stopPropagation()}
     >
+      {onPrint && (
+        <Button variant="ghost" size="sm" onClick={() => onPrint(e)} aria-label="طباعة السند">
+          <Icon name="print" className="h-4 w-4" />
+        </Button>
+      )}
       <Button variant="ghost" size="sm" onClick={() => onEdit(e)} aria-label="تعديل">
         <Icon name="edit" className="h-4 w-4" />
       </Button>

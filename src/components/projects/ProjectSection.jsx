@@ -19,6 +19,7 @@ export default function ProjectSection({
   onOpen,
   onEdit,
   onDelete,
+  onPrint,
 }) {
   // فتح التفاصيل بالنقر على السطر — مع منع الأزرار من تشغيله.
   const openProps = (item) => ({
@@ -39,6 +40,11 @@ export default function ProjectSection({
       onClick={(ev) => ev.stopPropagation()}
       onKeyDown={(ev) => ev.stopPropagation()}
     >
+      {onPrint && (
+        <Button variant="ghost" size="sm" onClick={() => onPrint(item)} aria-label="طباعة السند">
+          <Icon name="print" className="h-4 w-4" />
+        </Button>
+      )}
       <Button variant="ghost" size="sm" onClick={() => onEdit(item)} aria-label="تعديل">
         <Icon name="edit" className="h-4 w-4" />
       </Button>

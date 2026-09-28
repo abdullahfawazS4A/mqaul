@@ -20,9 +20,26 @@ body {
 }
 
 /* الطباعة: ورقة نظيفة بلا تنقّل ولا أزرار */
+/* السند المطبوع يُرسم خارج التطبيق ولا يظهر على الشاشة */
+.voucher-sheet {
+  display: none;
+}
+
 @media print {
   @page {
+    size: A4;
     margin: 14mm;
+  }
+
+  /* أثناء طباعة سند: الورقة للسند وحده */
+  body.printing-voucher #root {
+    display: none !important;
+  }
+
+  body.printing-voucher .voucher-sheet {
+    display: block;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   body {
