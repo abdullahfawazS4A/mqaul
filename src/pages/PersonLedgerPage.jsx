@@ -44,7 +44,6 @@ export default function PersonLedgerPage() {
   const navigate = useNavigate()
   const {
     getPerson,
-    availableCapital,
     entriesOfPerson,
     addDebt,
     addReceipt,
@@ -429,7 +428,7 @@ export default function PersonLedgerPage() {
         kind={entryForm?.kind}
         person={person}
         initial={entryForm?.initial}
-        limit={entryForm?.kind === 'debt' ? availableCapital : person.balance}
+        balance={person.balance}
         onClose={() => setEntryForm(null)}
         onSubmit={submitEntry}
       />

@@ -8,6 +8,7 @@ const PATHS = {
   plus: 'M12 5v14M5 12h14',
   trash: 'M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13',
   back: 'M9 6l6 6-6 6',
+  close: 'M6 6l12 12M18 6L6 18',
   edit: 'M4 20h4l10-10a2.5 2.5 0 0 0-3.5-3.5L4.5 16.5 4 20Z',
   arrowDown: 'M12 5v14M6 13l6 6 6-6',
   arrowUp: 'M12 19V5M6 11l6-6 6 6',

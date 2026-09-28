@@ -45,9 +45,8 @@ export default function DashboardPage() {
     treasuryBalance,
     treasuryTotals,
     treasury,
-    capital,
-    availableCapital,
-    totalOutstandingDebt,
+    outstandingOwed,
+    outstandingCredit,
     people,
     debtEntries,
     listsTotals,
@@ -79,16 +78,16 @@ export default function DashboardPage() {
           tone={treasuryBalance < 0 ? 'negative' : 'neutral'}
         />
         <StatCard
-          label="الرصيد المتاح للديون"
-          value={availableCapital}
-          tone={availableCapital < 0 ? 'negative' : 'positive'}
-          hint="رأس المال − الديون القائمة"
+          label="مجموع الأعطيت"
+          value={outstandingOwed}
+          tone="negative"
+          hint={`المتبقي على ${peopleInDebt} شخص`}
         />
         <StatCard
-          label="ديون نقدية قائمة"
-          value={totalOutstandingDebt}
-          tone="negative"
-          hint={`${peopleInDebt} شخص`}
+          label="مجموع الأخذت"
+          value={outstandingCredit}
+          tone="positive"
+          hint="ما لهم لدينا"
         />
         <StatCard
           label="ديون القوائم"
@@ -114,7 +113,7 @@ export default function DashboardPage() {
           icon="users"
           title="الديون"
           lines={[
-            { label: 'رأس المال', value: capital },
+            { label: 'المتبقي على الأشخاص', value: outstandingOwed, tone: 'text-red-600' },
             { label: 'عدد الأشخاص', value: people.length, money: false },
             { label: 'عدد الحركات', value: debtEntries.length, money: false },
             ...(peopleInCredit > 0

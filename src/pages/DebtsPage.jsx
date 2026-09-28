@@ -11,8 +11,13 @@ import { useToast } from '../components/ui/Toast.jsx'
 import { usePrint } from '../components/print/PrintProvider.jsx'
 import { debtVoucher } from '../components/print/vouchers.js'
 import { ErrorMessage, Input } from '../components/ui/Field.jsx'
-import CapitalCard from '../components/debts/CapitalCard.jsx'
 import PeopleTable from '../components/debts/PeopleTable.jsx'
+import DebtLogTable from '../components/debts/DebtLogTable.jsx'
+import DebtLogFilters, {
+  EMPTY_FILTERS,
+  applyFilters,
+  isFiltered,
+} from '../components/debts/DebtLogFilters.jsx'
 import PersonForm from '../components/debts/PersonForm.jsx'
 import DebtEntryForm from '../components/debts/DebtEntryForm.jsx'
 import { downloadXLSX, stampedName } from '../utils/download.js'
@@ -22,12 +27,18 @@ const SORTS = [
   { key: 'name', label: 'الاسم' },
 ]
 
+const TABS = [
+  { key: 'people', label: 'الأشخاص' },
+  { key: 'log', label: 'السجل' },
+]
+
 export default function DebtsPage() {
   const {
-    capital,
-    updateCapital,
-    availableCapital,
-    totalOutstandingDebt,
+    outstandingOwed,
+    outstandingCredit,
+    totalDebtGiven,
+    totalDebtReceived,
+    debtLog,
     people,
     addPerson,
     deletePerson,
@@ -37,7 +48,9 @@ export default function DebtsPage() {
   const { notify } = useToast()
   const { offerPrint } = usePrint()
 
+  const [tab, setTab] = useState('people')
   const [search, setSearch] = useState('')
+  const [logFilters, setLogFilters] = useState(EMPTY_FILTERS)
   const [personDetails, setPersonDetails] = useState(null)
   const [sort, setSort] = useState('debt')
   const [personFormOpen, setPersonFormOpen] = useState(false)
@@ -55,7 +68,26 @@ export default function DebtsPage() {
     )
   }, [people, search, sort])
 
-  const peopleInCredit = people.filter((p) => p.balance < 0).length
+  const visibleLog = useMemo(() => applyFilters(debtLog, logFilters), [debtLog, logFilters])
+
+  const logFiltered = isFiltered(logFilters)
+
+  /**
+   * مجاميع السجل تتبع المرشِّح — بلا مرشِّح هي مجاميع كل الحركات.
+   * الرصيد = الأعطيت − الأخذت؛ موجب أي ما زال لنا عند الأشخاص.
+   */
+  const logTotals = useMemo(() => {
+    if (!logFiltered) return { given: totalDebtGiven, received: totalDebtReceived }
+    return visibleLog.reduce(
+      (acc, e) =>
+        e.type === 'debt'
+          ? { ...acc, given: acc.given + e.amount }
+          : { ...acc, received: acc.received + e.amount },
+      { given: 0, received: 0 },
+    )
+  }, [logFiltered, visibleLog, totalDebtGiven, totalDebtReceived])
+
+  const logBalance = logTotals.given - logTotals.received
 
   // الحذف يمرّ بنافذة تأكيد، ويُرفض إذا كان الشخص مرتبطًا بقوائم
   const removePerson = (person) => {
@@ -78,7 +110,7 @@ export default function DebtsPage() {
     return res
   }
 
-  const exportXLSX = () =>
+  const exportPeople = () =>
     downloadXLSX(
       visible,
       [
@@ -92,11 +124,25 @@ export default function DebtsPage() {
       'الديون',
     )
 
+  const exportLog = () =>
+    downloadXLSX(
+      visibleLog,
+      [
+        { key: 'personName', label: 'الاسم' },
+        { key: (e) => (e.type === 'debt' ? 'أعطيت' : 'أخذت'), label: 'الحركة' },
+        { key: 'amount', label: 'المبلغ' },
+        { key: 'date', label: 'التاريخ' },
+        { key: 'note', label: 'ملاحظة' },
+      ],
+      stampedName('mqaul-debts-log', 'xlsx'),
+      'سجل الديون',
+    )
+
   return (
     <div>
       <PageHeader
         title="الديون"
-        description="الأشخاص الذين لهم دين مستحق من رأس المال — معزول تمامًا عن ديون القوائم."
+        description="الأشخاص الذين لهم دين مستحق — معزول تمامًا عن ديون القوائم."
         action={
           <Button onClick={() => setPersonFormOpen(true)}>
             <Icon name="plus" className="h-4 w-4" />
@@ -111,79 +157,163 @@ export default function DebtsPage() {
         </div>
       )}
 
-      <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <CapitalCard capital={capital} onSave={updateCapital} />
-        <StatCard
-          label="الرصيد الكلي المتاح"
-          value={availableCapital}
-          tone={availableCapital < 0 ? 'negative' : 'positive'}
-          hint="رأس المال − الديون القائمة"
-        />
-        <StatCard
-          label="مجموع الديون القائمة"
-          value={totalOutstandingDebt}
-          tone="negative"
-          hint={peopleInCredit > 0 ? `${peopleInCredit} شخص له رصيد لدينا` : undefined}
-        />
+      <div className="mb-4 flex gap-1.5 print:hidden">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => setTab(t.key)}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              tab === t.key
+                ? 'bg-slate-800 text-white'
+                : 'border border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
-      <Card className="overflow-hidden">
-        <CardHeader
-          title="الأشخاص"
-          subtitle={
-            search.trim()
-              ? `${visible.length} من ${people.length} مستخدم`
-              : `${people.length} مستخدم`
-          }
-          action={
-            <div className="flex flex-wrap items-center gap-2 print:hidden">
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="بحث بالاسم أو الهاتف أو الملاحظات…"
-                className="w-full sm:w-64"
-              />
-              <div className="flex gap-1.5">
-                {SORTS.map((s) => (
-                  <button
-                    key={s.key}
-                    type="button"
-                    onClick={() => setSort(s.key)}
-                    className={`rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
-                      sort === s.key
-                        ? 'bg-slate-800 text-white'
-                        : 'border border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
-                    }`}
+      {tab === 'people' ? (
+        <>
+          {/* المتبقي على الطرفين — لا مجاميع الحركات */}
+          <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <StatCard
+              label="مجموع الأعطيت"
+              value={outstandingOwed}
+              tone="negative"
+              hint="المتبقي على الأشخاص"
+            />
+            <StatCard
+              label="مجموع الأخذت"
+              value={outstandingCredit}
+              tone="positive"
+              hint="ما لهم لدينا"
+            />
+          </div>
+
+          <Card className="overflow-hidden">
+            <CardHeader
+              title="الأشخاص"
+              subtitle={
+                search.trim()
+                  ? `${visible.length} من ${people.length} مستخدم`
+                  : `${people.length} مستخدم`
+              }
+              action={
+                <div className="flex flex-wrap items-center gap-2 print:hidden">
+                  <Input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="بحث بالاسم أو الهاتف أو الملاحظات…"
+                    className="w-full sm:w-64"
+                  />
+                  <div className="flex gap-1.5">
+                    {SORTS.map((s) => (
+                      <button
+                        key={s.key}
+                        type="button"
+                        onClick={() => setSort(s.key)}
+                        className={`rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
+                          sort === s.key
+                            ? 'bg-slate-800 text-white'
+                            : 'border border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        {s.label}
+                      </button>
+                    ))}
+                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={exportPeople}
+                    disabled={visible.length === 0}
                   >
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={exportXLSX}
-                disabled={visible.length === 0}
-              >
-                <Icon name="arrowDown" className="h-4 w-4" />
-                تصدير Excel
-              </Button>
-            </div>
-          }
-        />
-        <PeopleTable
-          people={visible}
-          onOpen={setPersonDetails}
-          emptyText={
-            search.trim()
-              ? 'لا يوجد شخص مطابق للبحث.'
-              : 'لا يوجد أشخاص بعد — أضف مستخدمًا للبدء.'
-          }
-          onAddDebt={(person) => setEntryForm({ kind: 'debt', person })}
-          onAddReceipt={(person) => setEntryForm({ kind: 'receipt', person })}
-          onDelete={setConfirmPerson}
-        />
-      </Card>
+                    <Icon name="arrowDown" className="h-4 w-4" />
+                    تصدير Excel
+                  </Button>
+                </div>
+              }
+            />
+            <PeopleTable
+              people={visible}
+              onOpen={setPersonDetails}
+              emptyText={
+                search.trim()
+                  ? 'لا يوجد شخص مطابق للبحث.'
+                  : 'لا يوجد أشخاص بعد — أضف مستخدمًا للبدء.'
+              }
+              onAddDebt={(person) => setEntryForm({ kind: 'debt', person })}
+              onAddReceipt={(person) => setEntryForm({ kind: 'receipt', person })}
+              onDelete={setConfirmPerson}
+            />
+          </Card>
+        </>
+      ) : (
+        <>
+          {/* مجاميع الحركات المعروضة، والرصيد = الفرق بينهما */}
+          <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <StatCard
+              label="مجموع الأعطيت"
+              value={logTotals.given}
+              tone="negative"
+              hint={logFiltered ? 'ضمن المرشِّح' : 'كل ما أُعطي للأشخاص'}
+            />
+            <StatCard
+              label="مجموع الأخذت"
+              value={logTotals.received}
+              tone="positive"
+              hint={logFiltered ? 'ضمن المرشِّح' : 'كل ما اُستُلم منهم'}
+            />
+            <StatCard
+              label="الرصيد"
+              value={Math.abs(logBalance)}
+              tone={logBalance > 0 ? 'negative' : logBalance < 0 ? 'positive' : 'muted'}
+              hint={
+                logBalance > 0
+                  ? 'الأعطيت − الأخذت (لنا عندهم)'
+                  : logBalance < 0
+                    ? 'الأخذت − الأعطيت (لهم عندنا)'
+                    : 'متساويان'
+              }
+            />
+          </div>
+
+          <Card className="overflow-hidden">
+            <CardHeader
+              title="سجل الحركات"
+              subtitle={
+                logFiltered
+                  ? `${visibleLog.length} من ${debtLog.length} حركة`
+                  : `${debtLog.length} حركة`
+              }
+              action={
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={exportLog}
+                  disabled={visibleLog.length === 0}
+                >
+                  <Icon name="arrowDown" className="h-4 w-4" />
+                  تصدير Excel
+                </Button>
+              }
+            />
+            <DebtLogFilters
+              value={logFilters}
+              onChange={setLogFilters}
+              onReset={() => setLogFilters(EMPTY_FILTERS)}
+            />
+            <DebtLogTable
+              entries={visibleLog}
+              emptyText={
+                logFiltered ? 'لا توجد حركة مطابقة للمرشِّح.' : 'لا توجد حركات بعد.'
+              }
+            />
+          </Card>
+        </>
+      )}
 
       <DetailsModal
         open={personDetails !== null}
@@ -217,11 +347,7 @@ export default function DebtsPage() {
         open={entryForm !== null}
         kind={entryForm?.kind}
         person={entryForm?.person}
-        limit={
-          entryForm?.kind === 'debt'
-            ? availableCapital
-            : (people.find((p) => p.id === entryForm?.person?.id)?.balance ?? 0)
-        }
+        balance={people.find((p) => p.id === entryForm?.person?.id)?.balance ?? 0}
         onClose={() => setEntryForm(null)}
         onSubmit={submitEntry}
       />

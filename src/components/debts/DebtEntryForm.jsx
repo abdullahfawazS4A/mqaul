@@ -8,9 +8,10 @@ import { CURRENCY, formatMoney, todayISO } from '../../utils/format.js'
 /**
  * نموذج إضافة/تعديل دين أو سند قبض لشخص معيّن.
  * onSubmit تُعيد { ok, error } — يُعرض الخطأ داخل النموذج دون إغلاقه.
- * سند القبض بلا سقف: يجوز استلام مبلغ أكبر من دين الشخص.
+ * لا سقف على الطرفين: يجوز إعطاء أي مبلغ، ويجوز استلام أكبر من دين الشخص.
+ * balance هو دين الشخص الحالي — للعرض فقط.
  */
-export default function DebtEntryForm({ open, kind, person, limit, initial, onClose, onSubmit }) {
+export default function DebtEntryForm({ open, kind, person, balance, initial, onClose, onSubmit }) {
   const isDebt = kind === 'debt'
   const isEdit = Boolean(initial)
   const [amount, setAmount] = useState('')
@@ -51,8 +52,8 @@ export default function DebtEntryForm({ open, kind, person, limit, initial, onCl
     <Modal open={open} title={heading} onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
         <div className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
-          {isDebt ? 'الرصيد الكلي المتاح: ' : 'دين الشخص الحالي: '}
-          <span className="num font-semibold text-slate-800">{formatMoney(limit)}</span> {CURRENCY}
+          دين الشخص الحالي:{' '}
+          <span className="num font-semibold text-slate-800">{formatMoney(balance)}</span> {CURRENCY}
           {!isDebt && (
             <span className="mt-1 block text-slate-400">
               يجوز استلام مبلغ أكبر من الدين — الزائد يُسجَّل رصيدًا للشخص لدينا.

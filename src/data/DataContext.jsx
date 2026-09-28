@@ -164,17 +164,16 @@ export function DataProvider({ children }) {
       .filter((e) => e.personId === personId)
       .reduce((s, e) => (e.type === 'debt' ? s + num(e.amount) : s - num(e.amount)), 0)
 
-  const totalOutstandingDebt = useMemo(
-    () =>
-      debtEntries.reduce(
-        (s, e) => (e.type === 'debt' ? s + num(e.amount) : s - num(e.amount)),
-        0,
-      ),
+  // المجاميع الخام لكل الحركات — بلا مقاصّة. تُعرض في السجل وحده.
+  const totalDebtGiven = useMemo(
+    () => debtEntries.reduce((s, e) => (e.type === 'debt' ? s + num(e.amount) : s), 0),
     [debtEntries],
   )
 
-  // الرصيد المتاح للإقراض = رأس المال - مجموع الديون القائمة
-  const availableCapital = capital - totalOutstandingDebt
+  const totalDebtReceived = useMemo(
+    () => debtEntries.reduce((s, e) => (e.type === 'receipt' ? s + num(e.amount) : s), 0),
+    [debtEntries],
+  )
 
   const peopleWithBalance = useMemo(
     () =>
@@ -189,6 +188,32 @@ export function DataProvider({ children }) {
       })),
     [people, debtEntries],
   )
+
+  /**
+   * المتبقي على الطرفين — ما زال على الأشخاص، وما صار لهم لدينا.
+   * أرصدة الأشخاص لا تتقاصّ فيما بينها: كل جهة تُجمع وحدها.
+   */
+  const outstanding = useMemo(
+    () =>
+      peopleWithBalance.reduce(
+        (acc, p) =>
+          p.balance > 0
+            ? { ...acc, owed: acc.owed + p.balance }
+            : p.balance < 0
+              ? { ...acc, credit: acc.credit - p.balance }
+              : acc,
+        { owed: 0, credit: 0 },
+      ),
+    [peopleWithBalance],
+  )
+
+  /** سجل كل الحركات عبر كل الأشخاص، الأحدث أولًا، مع اسم صاحب الحركة. */
+  const debtLog = useMemo(() => {
+    const names = new Map(people.map((p) => [p.id, p.name]))
+    return debtEntries
+      .map((e) => ({ ...e, personName: names.get(e.personId) || '—' }))
+      .sort(byDateDesc)
+  }, [debtEntries, people])
 
   const addPerson = ({ name, phone, notes }) => {
     const person = {
@@ -222,18 +247,12 @@ export function DataProvider({ children }) {
   }
 
   /**
-   * إضافة دين — يمنع تجاوز الرصيد الكلي المتاح.
+   * إضافة دين — بلا سقف.
    * @returns {{ok: boolean, error?: string}}
    */
   const addDebt = ({ personId, amount, date, note }) => {
     const value = num(amount)
     if (value <= 0) return { ok: false, error: 'المبلغ يجب أن يكون أكبر من صفر.' }
-    if (value > availableCapital) {
-      return {
-        ok: false,
-        error: `المبلغ المطلوب أكبر من الرصيد الكلي المتاح (${availableCapital.toLocaleString('en-US')}).`,
-      }
-    }
     const entry = {
       id: uid('d'),
       personId,
@@ -269,8 +288,7 @@ export function DataProvider({ children }) {
   const deleteDebtEntry = (id) => setDebtEntries((prev) => prev.filter((e) => e.id !== id))
 
   /**
-   * تعديل حركة (دين أو سند قبض).
-   * الدين وحده مقيّد بالرصيد الكلي المتاح؛ سند القبض بلا سقف.
+   * تعديل حركة (دين أو سند قبض) — بلا سقف.
    * @returns {{ok: boolean, error?: string}}
    */
   const updateDebtEntry = (id, patch) => {
@@ -279,17 +297,6 @@ export function DataProvider({ children }) {
 
     const value = patch.amount === undefined ? num(entry.amount) : num(patch.amount)
     if (value <= 0) return { ok: false, error: 'المبلغ يجب أن يكون أكبر من صفر.' }
-
-    if (entry.type === 'debt') {
-      // السقف = المتاح حاليًا + المبلغ القديم (لأنه سيُستبدل)
-      const ceiling = availableCapital + num(entry.amount)
-      if (value > ceiling) {
-        return {
-          ok: false,
-          error: `المبلغ أكبر من الرصيد الكلي المتاح (${ceiling.toLocaleString('en-US')}).`,
-        }
-      }
-    }
 
     setDebtEntries((prev) =>
       prev.map((e) =>
@@ -951,8 +958,11 @@ export function DataProvider({ children }) {
     // الديون
     capital,
     updateCapital,
-    availableCapital,
-    totalOutstandingDebt,
+    totalDebtGiven,
+    totalDebtReceived,
+    outstandingOwed: outstanding.owed,
+    outstandingCredit: outstanding.credit,
+    debtLog,
     people: peopleWithBalance,
     getPerson,
     addPerson,
