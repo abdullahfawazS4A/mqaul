@@ -8,6 +8,11 @@ import { CURRENCY, formatMoney } from '../../utils/format.js'
 
 const PrintContext = createContext(null)
 
+/** أقصى انتظار لتحميل الخط قبل الطباعة — بعدها نطبع بالخط الاحتياطي. */
+const FONT_WAIT_MS = 1500
+/** شبكة أمان حين لا يُطلق المتصفح حدث afterprint. */
+const CLEANUP_MS = 60000
+
 /**
  * طباعة سند واحد على ورقة A4 مستقلة.
  * السند يُرسم خارج #root، وأثناء طباعته يحمل body الصنف printing-voucher
@@ -24,26 +29,45 @@ export function PrintProvider({ children }) {
     const body = document.body
     body.classList.add('printing-voucher')
 
+    let cleanupTimer = null
+
     const finish = () => {
+      clearTimeout(cleanupTimer)
       body.classList.remove('printing-voucher')
       setVoucher(null)
     }
     window.addEventListener('afterprint', finish)
 
-    // ننتظر رسم السند وتحميل الخط قبل فتح نافذة الطباعة
+    /**
+     * ننتظر رسم السند وتحميل الخط قبل فتح نافذة الطباعة — بمهلة قصوى.
+     * بعض الشبكات تحجب خطوط Google فلا يُحسم fonts.ready أبدًا؛ بلا هذه المهلة
+     * لا تُستدعى window.print() ولا يحدث شيء إطلاقًا.
+     */
+    const fontsReady = () =>
+      Promise.race([
+        Promise.resolve(document.fonts?.ready).catch(() => {}),
+        new Promise((resolve) => setTimeout(resolve, FONT_WAIT_MS)),
+      ])
+
     let cancelled = false
     const timer = setTimeout(async () => {
+      await fontsReady()
+      if (cancelled) return
       try {
-        await document.fonts?.ready
+        window.print()
       } catch {
-        /* الخط الاحتياطي يكفي */
+        /* متصفح بلا دعم طباعة — ننظّف بدل البقاء معلّقين */
+        finish()
+        return
       }
-      if (!cancelled) window.print()
+      // afterprint لا يُطلق على بعض متصفحات الجوال — ننظّف احتياطًا
+      cleanupTimer = setTimeout(finish, CLEANUP_MS)
     }, 80)
 
     return () => {
       cancelled = true
       clearTimeout(timer)
+      clearTimeout(cleanupTimer)
       window.removeEventListener('afterprint', finish)
       body.classList.remove('printing-voucher')
     }
